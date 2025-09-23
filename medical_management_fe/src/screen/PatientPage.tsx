@@ -121,31 +121,6 @@ export default function PatientPage() {
             </div>
           </div>
 
-          <div className="inline-flex rounded-lg border border-border/30 overflow-hidden">
-            {([
-              { key: 'overview', label: 'Tổng quan' },
-              { key: 'prescriptions', label: 'Đơn thuốc' },
-              { key: 'history', label: 'Lịch sử' },
-              { key: 'reminders', label: 'Nhắc nhở' },
-              { key: 'alerts', label: 'Cảnh báo' },
-              { key: 'adherence', label: 'Tuân thủ' },
-            ] as const).map(t => (
-              <button
-                key={t.key}
-                className={`px-3 py-1.5 text-sm ${activeTab === t.key ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent/40'}`}
-                onClick={() => {
-                  setActiveTab(t.key as typeof activeTab)
-                  if (t.key === 'history') setPage(1)
-                  const params = new URLSearchParams(location.search)
-                  params.set('tab', t.key)
-                  navigate({ pathname: '/dashboard/patients', search: params.toString() }, { replace: true })
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
           {/* Overview */}
           {activeTab === 'overview' && (
             <div className="rounded-xl border border-border/20 bg-card p-4">

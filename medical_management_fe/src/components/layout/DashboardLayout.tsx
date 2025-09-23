@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Home, Users, Bell, ChevronDown, HelpCircle, LogOut, Loader2 } from "lucide-react";
+import { Home, Users, Bell, ChevronDown, HelpCircle, LogOut, Loader2, Stethoscope, UserRound, Pill, Clock, AlarmClock, AlertTriangle, Activity } from "lucide-react";
 
 const adminMenuItems = [
   {
@@ -31,7 +31,7 @@ const adminMenuItems = [
   {
     title: "Bác sĩ",
     url: "/dashboard/doctor-management",
-    icon: Users,
+    icon: Stethoscope,
   },
   {
     title: "Bệnh nhân",
@@ -41,7 +41,7 @@ const adminMenuItems = [
   {
     title: "Quản lý tài khoản",
     url: "/dashboard/user-management",
-    icon: Users,
+    icon: UserRound,
   },
 ];
 
@@ -55,11 +55,11 @@ const doctorOnlyMenuItems = [
 
 const patientMenuItems = [
   { title: "Tổng quan", url: "/dashboard/patients?tab=overview", icon: Home },
-  { title: "Đơn thuốc", url: "/dashboard/patients?tab=prescriptions", icon: Users },
-  { title: "Lịch sử", url: "/dashboard/patients?tab=history", icon: Users },
-  { title: "Nhắc nhở", url: "/dashboard/patients?tab=reminders", icon: Users },
-  { title: "Cảnh báo", url: "/dashboard/patients?tab=alerts", icon: Users },
-  { title: "Tuân thủ", url: "/dashboard/patients?tab=adherence", icon: Users },
+  { title: "Đơn thuốc", url: "/dashboard/patients?tab=prescriptions", icon: Pill },
+  { title: "Lịch sử", url: "/dashboard/patients?tab=history", icon: Clock },
+  { title: "Nhắc nhở", url: "/dashboard/patients?tab=reminders", icon: AlarmClock },
+  { title: "Cảnh báo", url: "/dashboard/patients?tab=alerts", icon: AlertTriangle },
+  { title: "Tuân thủ", url: "/dashboard/patients?tab=adherence", icon: Activity },
 ];
 
 interface AppSidebarProps {
