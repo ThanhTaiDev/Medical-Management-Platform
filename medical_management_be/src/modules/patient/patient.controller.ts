@@ -12,6 +12,7 @@ import { PatientService } from './patient.service';
 import { UserInfo } from '@/common/decorators/users.decorator';
 import { IUserFromToken } from '@/modules/users/types/user.type';
 import { AdherenceStatus, UserRole } from '@prisma/client';
+import { Public, SkipPermission } from '@/common/decorators/isPublicRoute';
 
 @Controller('patient')
 export class PatientController {
@@ -23,13 +24,41 @@ export class PatientController {
     }
   }
 
+  // Danh sách tất cả bệnh nhân (Admin/Doctor dùng để tra cứu)
+  @Get('get-all')
+  @Public()
+  @SkipPermission()
+  async listPatients() {
+    return this.patientService.listAllPatients();
+  }
+
+  // Cập nhật thông tin bệnh nhân
+  @Post(':id')
+  async updatePatient(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      fullName?: string;
+      phoneNumber?: string;
+      profile?: { gender?: string; birthDate?: string; address?: string };
+    }
+  ) {
+    return this.patientService.updatePatient(id, body);
+  }
+
+  // Xóa bệnh nhân
+  @Post(':id/delete')
+  async deletePatient(@Param('id') id: string) {
+    return this.patientService.deletePatient(id);
+  }
+
   // Đơn thuốc & nhắc nhở
   @Get('prescriptions')
   async activePrescriptions(@UserInfo() user: IUserFromToken) {
     this.ensurePatient(user);
     return this.patientService.listActivePrescriptions(user.id);
   }
-
+  // Chi tiết đơn thuốc
   @Get('prescriptions/:id')
   async prescriptionDetail(
     @Param('id') id: string,
@@ -38,7 +67,7 @@ export class PatientController {
     this.ensurePatient(user);
     return this.patientService.getPrescriptionDetail(user.id, id);
   }
-
+  // Lịch sử đơn thuốc
   @Get('history')
   async history(
     @UserInfo() user: IUserFromToken,
@@ -55,7 +84,7 @@ export class PatientController {
       sortOrder
     });
   }
-
+  // Lịch sử uống thuốc
   @Get('reminders')
   async reminders(@UserInfo() user: IUserFromToken) {
     this.ensurePatient(user);

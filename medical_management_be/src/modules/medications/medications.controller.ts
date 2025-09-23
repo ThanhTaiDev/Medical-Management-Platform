@@ -17,7 +17,7 @@ import { UserRole } from '@prisma/client';
 
 @Controller('admin/medications')
 export class MedicationsController {
-  constructor(private readonly medicationsService: MedicationsService) { }
+  constructor(private readonly medicationsService: MedicationsService) {}
 
   @Get()
   async list(

@@ -4,7 +4,7 @@ import { AdherenceStatus, PrescriptionStatus } from '@prisma/client';
 
 @Injectable()
 export class PatientService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService) { }
 
   async listActivePrescriptions(patientId: string) {
     return this.databaseService.client.prescription.findMany({
@@ -149,5 +149,86 @@ export class PatientService {
       ]);
     const adherenceRate = totalItems > 0 ? takenLogs / totalItems : 0;
     return { activePrescriptions, adherenceRate, unresolvedAlerts };
+  }
+
+  // Danh sách tất cả bệnh nhân (join User + PatientProfile)
+  async listAllPatients() {
+    return this.databaseService.client.user.findMany({
+      where: {
+        role: 'PATIENT'
+      },
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        profile: {
+          select: {
+            gender: true,
+            birthDate: true,
+            address: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async updatePatient(
+    id: string,
+    data: {
+      fullName?: string;
+      phoneNumber?: string;
+      profile?: { gender?: string; birthDate?: string; address?: string };
+    }
+  ) {
+    const tx = this.databaseService.client;
+    const { fullName, phoneNumber, profile } = data || {};
+    const updated = await tx.user.update({
+      where: { id },
+      data: {
+        fullName: fullName ?? undefined,
+        phoneNumber: phoneNumber ?? undefined,
+        profile: profile
+          ? {
+            upsert: {
+              create: {
+                gender: (profile.gender as any) ?? undefined,
+                birthDate: profile.birthDate
+                  ? new Date(profile.birthDate)
+                  : undefined,
+                address: profile.address ?? undefined
+              },
+              update: {
+                gender: (profile.gender as any) ?? undefined,
+                birthDate: profile.birthDate
+                  ? new Date(profile.birthDate)
+                  : undefined,
+                address: profile.address ?? undefined
+              }
+            }
+          }
+          : undefined
+      },
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        profile: { select: { gender: true, birthDate: true, address: true } }
+      }
+    });
+    return updated;
+  }
+
+  async deletePatient(id: string) {
+    // Soft delete nếu có deletedAt, nếu không sẽ xóa cứng
+    const hasDeletedAt = true;
+    if (hasDeletedAt) {
+      return this.databaseService.client.user.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+        select: { id: true }
+      });
+    }
+    return this.databaseService.client.user.delete({ where: { id } });
   }
 }

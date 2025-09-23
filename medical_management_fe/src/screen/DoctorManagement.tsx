@@ -28,15 +28,22 @@ import {
 } from "@/components/ui/table";
 import toast from "react-hot-toast";
 import { MedicationsApi, MedicationDto } from "@/api/medications";
+import { UsersApi } from "@/api/user";
+import { patientApi } from "@/api/patient/patient.api";
+import { Pencil, Trash2 } from "lucide-react";
 
 const toArray = (payload: any): any[] => {
   if (Array.isArray(payload)) return payload;
   if (payload && Array.isArray(payload.data)) return payload.data;
+  if (payload && Array.isArray(payload.items)) return payload.items;
   return [];
 };
 
 const DoctorManagement: React.FC = () => {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<
+    "patients" | "prescriptions" | "overview" | "alerts"
+  >("patients");
   const role = useMemo(() => {
     try {
       const raw = localStorage.getItem("roles");
@@ -46,6 +53,13 @@ const DoctorManagement: React.FC = () => {
       return "DOCTOR";
     }
   }, []);
+
+  // If role is PATIENT, load own profile to populate table with single row
+  const currentUserQuery = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: UsersApi.getMe,
+    enabled: role === "PATIENT",
+  });
 
   // Search & pagination
   const [patientSearch, setPatientSearch] = useState("");
@@ -123,23 +137,10 @@ const DoctorManagement: React.FC = () => {
   };
 
   // Queries
-  const patientsQueryKey = useMemo(
-    () => [
-      "doctor-patients",
-      { q: patientSearch, page: patientPage, limit: patientLimit },
-    ],
-    [patientSearch, patientPage, patientLimit]
-  );
+  const patientsQueryKey = useMemo(() => ["patient-get-all"], []);
   const { data: patientsData, isLoading: loadingPatients } = useQuery({
     queryKey: patientsQueryKey,
-    queryFn: () =>
-      DoctorApi.listPatients({
-        q: patientSearch,
-        page: patientPage,
-        limit: patientLimit,
-        sortBy: "createdAt",
-        sortOrder: "desc",
-      }),
+    queryFn: () => patientApi.getAllPatients(),
   });
 
   const { data: overviewData } = useQuery({
@@ -174,9 +175,13 @@ const DoctorManagement: React.FC = () => {
 
   const updateProfileMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: PatientProfileDto }) =>
-      DoctorApi.updatePatientProfile(id, dto),
+      patientApi.updatePatient(id, {
+        fullName: createForm.fullName,
+        phoneNumber: createForm.phoneNumber,
+        profile: dto,
+      } as any),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["doctor-patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-get-all"] });
       setOpenEditProfile({ open: false, id: undefined });
       toast.success("Cập nhật hồ sơ thành công", { position: "top-center" });
     },
@@ -278,7 +283,18 @@ const DoctorManagement: React.FC = () => {
   // Handlers
   const handleOpenEditProfile = (id: string) => {
     setSelectedPatientId(id);
-    setProfileForm({ gender: "", birthDate: "", address: "" });
+    // Prefill từ danh sách hiện có nếu tìm thấy
+    const current = toArray(patientsData).find((x: any) => x.id === id);
+    setCreateForm((s) => ({
+      ...s,
+      fullName: current?.fullName || "",
+      phoneNumber: current?.phoneNumber || "",
+    }));
+    setProfileForm({
+      gender: current?.profile?.gender || "",
+      birthDate: current?.profile?.birthDate?.slice(0, 10) || "",
+      address: current?.profile?.address || "",
+    });
     setOpenEditProfile({ open: true, id });
   };
 
@@ -296,6 +312,20 @@ const DoctorManagement: React.FC = () => {
     setOpenEditHistory({ open: true, id });
   };
 
+  const handleOpenDelete = (p: any) => {
+    const id = p?.id;
+    if (!id) return;
+    patientApi
+      .deletePatient(id)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["patient-get-all"] });
+        toast.success("Đã xóa bệnh nhân");
+      })
+      .catch((e) =>
+        toast.error(e?.response?.data?.message || "Xóa bệnh nhân thất bại")
+      );
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
@@ -304,197 +334,204 @@ const DoctorManagement: React.FC = () => {
             Bảng điều khiển bác sĩ
           </h1>
           <div className="flex gap-2">
-            {role === "DOCTOR" && (
-              <Dialog
-                open={openCreatePatient}
-                onOpenChange={setOpenCreatePatient}
-              >
-                <DialogTrigger asChild>
-                  <Button>+ Thêm bệnh nhân</Button>
-                </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Thêm bệnh nhân</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-2">
-                  <div className="grid gap-2">
-                    <Label>Họ tên</Label>
-                    <Input
-                      value={createForm.fullName}
-                      onChange={(e) => {
-                        setCreateForm((s) => ({
-                          ...s,
-                          fullName: e.target.value,
-                        }));
-                        if (createErrors.fullName)
-                          setCreateErrors((er) => ({
-                            ...er,
-                            fullName: undefined,
-                          }));
-                      }}
-                      placeholder="Nguyễn Văn A"
-                    />
-                    {createErrors.fullName && (
-                      <p className="text-red-500 text-sm">
-                        {createErrors.fullName}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Số điện thoại</Label>
-                    <Input
-                      value={createForm.phoneNumber}
-                      onChange={(e) => {
-                        setCreateForm((s) => ({
-                          ...s,
-                          phoneNumber: e.target.value,
-                        }));
-                        if (createErrors.phoneNumber)
-                          setCreateErrors((er) => ({
-                            ...er,
-                            phoneNumber: undefined,
-                          }));
-                      }}
-                      placeholder="09xxxxxxxx"
-                    />
-                    {createErrors.phoneNumber && (
-                      <p className="text-red-500 text-sm">
-                        {createErrors.phoneNumber}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Mật khẩu</Label>
-                    <Input
-                      type="password"
-                      value={createForm.password}
-                      onChange={(e) => {
-                        setCreateForm((s) => ({
-                          ...s,
-                          password: e.target.value,
-                        }));
-                        if (createErrors.password)
-                          setCreateErrors((er) => ({
-                            ...er,
-                            password: undefined,
-                          }));
-                      }}
-                      placeholder="••••••"
-                    />
-                    {createErrors.password && (
-                      <p className="text-red-500 text-sm">
-                        {createErrors.password}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Giới tính</Label>
-                    <Input
-                      value={createForm.profile?.gender || ""}
-                      onChange={(e) => {
-                        setCreateForm((s) => ({
-                          ...s,
-                          profile: {
-                            ...(s.profile || {}),
-                            gender: e.target.value,
-                          },
-                        }));
-                        if (createErrors.gender)
-                          setCreateErrors((er) => ({
-                            ...er,
-                            gender: undefined,
-                          }));
-                      }}
-                      placeholder="Nam/Nữ/Khác"
-                    />
-                    {createErrors.gender && (
-                      <p className="text-red-500 text-sm">
-                        {createErrors.gender}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Ngày sinh</Label>
-                    <Input
-                      type="date"
-                      value={createForm.profile?.birthDate || ""}
-                      onChange={(e) => {
-                        setCreateForm((s) => ({
-                          ...s,
-                          profile: {
-                            ...(s.profile || {}),
-                            birthDate: e.target.value,
-                          },
-                        }));
-                        if (createErrors.birthDate)
-                          setCreateErrors((er) => ({
-                            ...er,
-                            birthDate: undefined,
-                          }));
-                      }}
-                    />
-                    {createErrors.birthDate && (
-                      <p className="text-red-500 text-sm">
-                        {createErrors.birthDate}
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Địa chỉ</Label>
-                    <Input
-                      value={createForm.profile?.address || ""}
-                      onChange={(e) => {
-                        setCreateForm((s) => ({
-                          ...s,
-                          profile: {
-                            ...(s.profile || {}),
-                            address: e.target.value,
-                          },
-                        }));
-                        if (createErrors.address)
-                          setCreateErrors((er) => ({
-                            ...er,
-                            address: undefined,
-                          }));
-                      }}
-                      placeholder="Địa chỉ"
-                    />
-                    {createErrors.address && (
-                      <p className="text-red-500 text-sm">
-                        {createErrors.address}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={() => {
-                      const ok = validateCreateForm();
-                      if (!ok) {
-                        toast.error(
-                          "Vui lòng nhập đầy đủ và hợp lệ tất cả trường",
-                          { position: "top-center" }
-                        );
-                        return;
-                      }
-                      createPatientMutation.mutate(createForm);
-                    }}
-                    isLoading={createPatientMutation.isPending}
-                  >
-                    Lưu
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-              </Dialog>
-            )}
-            {role === "ADMIN" && (
+            {activeTab === "patients" &&
+              (role === "DOCTOR" || role === "ADMIN") && (
+                <Dialog
+                  open={openCreatePatient}
+                  onOpenChange={setOpenCreatePatient}
+                >
+                  <DialogTrigger asChild>
+                    <Button>+ Thêm bệnh nhân</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Thêm bệnh nhân</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2">
+                      <div className="grid gap-2">
+                        <Label>Họ tên</Label>
+                        <Input
+                          value={createForm.fullName}
+                          onChange={(e) => {
+                            setCreateForm((s) => ({
+                              ...s,
+                              fullName: e.target.value,
+                            }));
+                            if (createErrors.fullName)
+                              setCreateErrors((er) => ({
+                                ...er,
+                                fullName: undefined,
+                              }));
+                          }}
+                          placeholder="Nguyễn Văn A"
+                        />
+                        {createErrors.fullName && (
+                          <p className="text-red-500 text-sm">
+                            {createErrors.fullName}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Số điện thoại</Label>
+                        <Input
+                          value={createForm.phoneNumber}
+                          onChange={(e) => {
+                            setCreateForm((s) => ({
+                              ...s,
+                              phoneNumber: e.target.value,
+                            }));
+                            if (createErrors.phoneNumber)
+                              setCreateErrors((er) => ({
+                                ...er,
+                                phoneNumber: undefined,
+                              }));
+                          }}
+                          placeholder="09xxxxxxxx"
+                        />
+                        {createErrors.phoneNumber && (
+                          <p className="text-red-500 text-sm">
+                            {createErrors.phoneNumber}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Mật khẩu</Label>
+                        <Input
+                          type="password"
+                          value={createForm.password}
+                          onChange={(e) => {
+                            setCreateForm((s) => ({
+                              ...s,
+                              password: e.target.value,
+                            }));
+                            if (createErrors.password)
+                              setCreateErrors((er) => ({
+                                ...er,
+                                password: undefined,
+                              }));
+                          }}
+                          placeholder="••••••"
+                        />
+                        {createErrors.password && (
+                          <p className="text-red-500 text-sm">
+                            {createErrors.password}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Giới tính</Label>
+                        <Input
+                          value={createForm.profile?.gender || ""}
+                          onChange={(e) => {
+                            setCreateForm((s) => ({
+                              ...s,
+                              profile: {
+                                ...(s.profile || {}),
+                                gender: e.target.value,
+                              },
+                            }));
+                            if (createErrors.gender)
+                              setCreateErrors((er) => ({
+                                ...er,
+                                gender: undefined,
+                              }));
+                          }}
+                          placeholder="Nam/Nữ/Khác"
+                        />
+                        {createErrors.gender && (
+                          <p className="text-red-500 text-sm">
+                            {createErrors.gender}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Ngày sinh</Label>
+                        <Input
+                          type="date"
+                          value={createForm.profile?.birthDate || ""}
+                          onChange={(e) => {
+                            setCreateForm((s) => ({
+                              ...s,
+                              profile: {
+                                ...(s.profile || {}),
+                                birthDate: e.target.value,
+                              },
+                            }));
+                            if (createErrors.birthDate)
+                              setCreateErrors((er) => ({
+                                ...er,
+                                birthDate: undefined,
+                              }));
+                          }}
+                        />
+                        {createErrors.birthDate && (
+                          <p className="text-red-500 text-sm">
+                            {createErrors.birthDate}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Địa chỉ</Label>
+                        <Input
+                          value={createForm.profile?.address || ""}
+                          onChange={(e) => {
+                            setCreateForm((s) => ({
+                              ...s,
+                              profile: {
+                                ...(s.profile || {}),
+                                address: e.target.value,
+                              },
+                            }));
+                            if (createErrors.address)
+                              setCreateErrors((er) => ({
+                                ...er,
+                                address: undefined,
+                              }));
+                          }}
+                          placeholder="Địa chỉ"
+                        />
+                        {createErrors.address && (
+                          <p className="text-red-500 text-sm">
+                            {createErrors.address}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        onClick={() => {
+                          const ok = validateCreateForm();
+                          if (!ok) {
+                            toast.error(
+                              "Vui lòng nhập đầy đủ và hợp lệ tất cả trường",
+                              { position: "top-center" }
+                            );
+                            return;
+                          }
+                          createPatientMutation.mutate(createForm);
+                        }}
+                        isLoading={createPatientMutation.isPending}
+                      >
+                        Lưu
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            {activeTab === "prescriptions" && role === "ADMIN" && (
               <Dialog
                 open={openMedDialog}
                 onOpenChange={(o) => {
                   setOpenMedDialog(o);
                   if (!o) {
                     setEditingMedId(undefined);
-                    setMedForm({ name: "", strength: "", form: "", unit: "", description: "" });
+                    setMedForm({
+                      name: "",
+                      strength: "",
+                      form: "",
+                      unit: "",
+                      description: "",
+                    });
                   }
                 }}
               >
@@ -503,28 +540,66 @@ const DoctorManagement: React.FC = () => {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>{editingMedId ? "Sửa thuốc" : "Thêm thuốc"}</DialogTitle>
+                    <DialogTitle>
+                      {editingMedId ? "Sửa thuốc" : "Thêm thuốc"}
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="grid gap-4 py-2">
                     <div className="grid gap-2">
                       <Label>Tên thuốc</Label>
-                      <Input value={medForm.name || ""} onChange={(e) => setMedForm((s) => ({ ...s, name: e.target.value }))} placeholder="Paracetamol" />
+                      <Input
+                        value={medForm.name || ""}
+                        onChange={(e) =>
+                          setMedForm((s) => ({ ...s, name: e.target.value }))
+                        }
+                        placeholder="Paracetamol"
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Hàm lượng</Label>
-                      <Input value={medForm.strength || ""} onChange={(e) => setMedForm((s) => ({ ...s, strength: e.target.value }))} placeholder="500mg" />
+                      <Input
+                        value={medForm.strength || ""}
+                        onChange={(e) =>
+                          setMedForm((s) => ({
+                            ...s,
+                            strength: e.target.value,
+                          }))
+                        }
+                        placeholder="500mg"
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Dạng bào chế</Label>
-                      <Input value={medForm.form || ""} onChange={(e) => setMedForm((s) => ({ ...s, form: e.target.value }))} placeholder="viên" />
+                      <Input
+                        value={medForm.form || ""}
+                        onChange={(e) =>
+                          setMedForm((s) => ({ ...s, form: e.target.value }))
+                        }
+                        placeholder="viên"
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Đơn vị</Label>
-                      <Input value={medForm.unit || ""} onChange={(e) => setMedForm((s) => ({ ...s, unit: e.target.value }))} placeholder="mg" />
+                      <Input
+                        value={medForm.unit || ""}
+                        onChange={(e) =>
+                          setMedForm((s) => ({ ...s, unit: e.target.value }))
+                        }
+                        placeholder="mg"
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label>Mô tả</Label>
-                      <Input value={medForm.description || ""} onChange={(e) => setMedForm((s) => ({ ...s, description: e.target.value }))} placeholder="Ghi chú" />
+                      <Input
+                        value={medForm.description || ""}
+                        onChange={(e) =>
+                          setMedForm((s) => ({
+                            ...s,
+                            description: e.target.value,
+                          }))
+                        }
+                        placeholder="Ghi chú"
+                      />
                     </div>
                   </div>
                   <DialogFooter>
@@ -534,7 +609,8 @@ const DoctorManagement: React.FC = () => {
                           toast.error("Không thể bỏ trống tên thuốc");
                           return;
                         }
-                        if (editingMedId) updateMed.mutate({ id: editingMedId, dto: medForm });
+                        if (editingMedId)
+                          updateMed.mutate({ id: editingMedId, dto: medForm });
                         else createMed.mutate(medForm);
                       }}
                       isLoading={createMed.isPending || updateMed.isPending}
@@ -548,7 +624,11 @@ const DoctorManagement: React.FC = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="patients" className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as any)}
+          className="space-y-6"
+        >
           <TabsList>
             <TabsTrigger value="patients">Bệnh nhân</TabsTrigger>
             <TabsTrigger value="prescriptions">Đơn thuốc</TabsTrigger>
@@ -568,7 +648,7 @@ const DoctorManagement: React.FC = () => {
                   }}
                 />
                 <div className="text-sm text-muted-foreground">
-                  Tổng: {patientsData?.total ?? patientsData?.data?.length ?? 0}
+                  Tổng: {patientsData?.data?.length ?? 0}
                 </div>
               </div>
 
@@ -585,7 +665,10 @@ const DoctorManagement: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {toArray(patientsData).map((p: any) => (
+                    {(role === "PATIENT"
+                      ? [currentUserQuery.data].filter(Boolean)
+                      : toArray(patientsData)
+                    ).map((p: any) => (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">
                           {p.fullName}
@@ -598,23 +681,27 @@ const DoctorManagement: React.FC = () => {
                           <div className="flex justify-end gap-2">
                             <Button
                               variant="outline"
-                              size="sm"
+                              size="icon"
                               onClick={() => handleOpenEditProfile(p.id)}
+                              title="Sửa"
                             >
-                              Sửa hồ sơ
+                              <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenEditHistory(p.id)}
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => handleOpenDelete(p)}
+                              title="Xóa"
                             >
-                              Cập nhật tiền sử
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
                     ))}
-                    {loadingPatients && (
+                    {(role !== "PATIENT"
+                      ? loadingPatients
+                      : currentUserQuery.isLoading) && (
                       <TableRow>
                         <TableCell
                           colSpan={6}
@@ -668,6 +755,30 @@ const DoctorManagement: React.FC = () => {
                   <DialogTitle>Cập nhật hồ sơ</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
+                    <Label>Họ tên</Label>
+                    <Input
+                      value={createForm.fullName || ""}
+                      onChange={(e) =>
+                        setCreateForm((s) => ({
+                          ...s,
+                          fullName: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Số điện thoại</Label>
+                    <Input
+                      value={createForm.phoneNumber || ""}
+                      onChange={(e) =>
+                        setCreateForm((s) => ({
+                          ...s,
+                          phoneNumber: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
                   <div className="grid gap-2">
                     <Label>Giới tính</Label>
                     <Input
@@ -870,8 +981,12 @@ const DoctorManagement: React.FC = () => {
                       <TableBody>
                         {toArray(prescriptionsQuery.data).map((pr: any) => (
                           <TableRow key={pr.id}>
-                            <TableCell className="font-medium">{pr.id}</TableCell>
-                            <TableCell>{pr.patient?.fullName || pr.patientId}</TableCell>
+                            <TableCell className="font-medium">
+                              {pr.id}
+                            </TableCell>
+                            <TableCell>
+                              {pr.patient?.fullName || pr.patientId}
+                            </TableCell>
                             <TableCell>{pr.notes || "-"}</TableCell>
                             <TableCell>{pr.status || "-"}</TableCell>
                           </TableRow>
@@ -901,15 +1016,43 @@ const DoctorManagement: React.FC = () => {
                       <TableBody>
                         {toArray(medsQuery.data).map((m: any) => (
                           <TableRow key={m.id}>
-                            <TableCell className="font-medium">{m.name}</TableCell>
-                            <TableCell>{m.strength || '-'}</TableCell>
-                            <TableCell>{m.form || '-'}</TableCell>
-                            <TableCell>{m.unit || '-'}</TableCell>
-                            <TableCell>{m.isActive ? 'ACTIVE' : 'INACTIVE'}</TableCell>
+                            <TableCell className="font-medium">
+                              {m.name}
+                            </TableCell>
+                            <TableCell>{m.strength || "-"}</TableCell>
+                            <TableCell>{m.form || "-"}</TableCell>
+                            <TableCell>{m.unit || "-"}</TableCell>
+                            <TableCell>
+                              {m.isActive ? "ACTIVE" : "INACTIVE"}
+                            </TableCell>
                             <TableCell className="text-right">
                               <div className="flex gap-2 justify-end">
-                                <Button variant="outline" size="sm" onClick={() => { setEditingMedId(m.id); setMedForm({ name: m.name, strength: m.strength, form: m.form, unit: m.unit, description: m.description, isActive: m.isActive }); setOpenMedDialog(true); }}>Sửa</Button>
-                                <Button variant="outline" size="sm" onClick={() => deactivateMed.mutate(m.id)} disabled={!m.isActive}>Vô hiệu</Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingMedId(m.id);
+                                    setMedForm({
+                                      name: m.name,
+                                      strength: m.strength,
+                                      form: m.form,
+                                      unit: m.unit,
+                                      description: m.description,
+                                      isActive: m.isActive,
+                                    });
+                                    setOpenMedDialog(true);
+                                  }}
+                                >
+                                  Sửa
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => deactivateMed.mutate(m.id)}
+                                  disabled={!m.isActive}
+                                >
+                                  Vô hiệu
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>

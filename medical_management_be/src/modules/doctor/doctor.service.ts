@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '@/core/database/database.service';
 import { Utils } from '@/utils/utils';
-import { AdherenceStatus, PrescriptionStatus, UserRole, Gender } from '@prisma/client';
+import {
+  AdherenceStatus,
+  PrescriptionStatus,
+  UserRole,
+  Gender
+} from '@prisma/client';
 
 @Injectable()
 export class DoctorService {
@@ -19,7 +24,8 @@ export class DoctorService {
     if (normalized === 'other') return Gender.OTHER;
     // Vietnamese aliases
     if (['nam', 'm', 'trai'].includes(normalized)) return Gender.MALE;
-    if (['nu', 'nữ', 'f', 'gai', 'gái'].includes(normalized)) return Gender.FEMALE;
+    if (['nu', 'nữ', 'f', 'gai', 'gái'].includes(normalized))
+      return Gender.FEMALE;
     if (['khac', 'khác'].includes(normalized)) return Gender.OTHER;
     return null;
   }
@@ -57,6 +63,7 @@ export class DoctorService {
     return { items, total, page, limit };
   }
 
+
   async getPatient(id: string) {
     const user = await this.databaseService.client.user.findUnique({
       where: { id },
@@ -87,7 +94,9 @@ export class DoctorService {
     if (body.profile?.birthDate) {
       const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/; // yyyy-MM-dd
       if (!isoDateRegex.test(body.profile.birthDate)) {
-        throw new UnprocessableEntityException('Invalid birthDate format (yyyy-MM-dd)');
+        throw new UnprocessableEntityException(
+          'Invalid birthDate format (yyyy-MM-dd)'
+        );
       }
     }
     const existing = await this.databaseService.client.user.findFirst({
@@ -126,7 +135,9 @@ export class DoctorService {
     if (body.birthDate) {
       const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!isoDateRegex.test(body.birthDate)) {
-        throw new UnprocessableEntityException('Invalid birthDate format (yyyy-MM-dd)');
+        throw new UnprocessableEntityException(
+          'Invalid birthDate format (yyyy-MM-dd)'
+        );
       }
     }
     const user = await this.getPatient(id);
@@ -146,7 +157,8 @@ export class DoctorService {
       await this.databaseService.client.patientProfile.update({
         where: { userId: id },
         data: {
-          gender: body.gender !== undefined ? this.mapGender(body.gender) : undefined,
+          gender:
+            body.gender !== undefined ? this.mapGender(body.gender) : undefined,
           birthDate: body.birthDate ? new Date(body.birthDate) : undefined,
           address: body.address ?? undefined
         }

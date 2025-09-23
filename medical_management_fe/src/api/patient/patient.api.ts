@@ -37,9 +37,11 @@ export const patientApi = {
     },
 
     async getAllPatients(): Promise<IGetPatientResponse> {
-        const res = await axiosInstance.get('/admin/users', { params: { role: 'PATIENT', limit: 1000 } });
+        const res = await axiosInstance.get('/patient/get-all');
         const payload = res.data?.data ?? res.data;
-        const items = payload.items ?? payload.data ?? [];
+        const items = Array.isArray(payload)
+            ? payload
+            : (payload.items ?? payload.data ?? []);
         return { data: items, statusCode: res.data?.statusCode ?? 200 } as unknown as IGetPatientResponse;
     },
 
@@ -77,14 +79,19 @@ export const patientApi = {
         return (res.data?.data ?? res.data) as ICreatePatientResponse;
     },
 
-    async updatePatient(id: string, data: IUpdatePatientRequest) {
-        const res = await axiosInstance.put(`/doctor/patients/${id}/profile`, data);
+    // Legacy doctor route kept if needed; prefer below /patient/:id
+    // async updatePatientDoctor(id: string, data: IUpdatePatientRequest) {
+    //     const res = await axiosInstance.put(`/doctor/patients/${id}/profile`, data);
+    //     return (res.data?.data ?? res.data);
+    // },
+
+    async deletePatient(id: string): Promise<any> {
+        const res = await axiosInstance.post(`/patient/${id}/delete`);
         return (res.data?.data ?? res.data);
     },
 
-    async deletePatient(id: string): Promise<any> {
-        // No explicit delete endpoints found for doctor/admin patients; soft delete could be admin/users/:id
-        const res = await axiosInstance.delete(`/admin/users/${id}`);
+    async updatePatient(id: string, data: Partial<IUpdatePatientRequest>) {
+        const res = await axiosInstance.post(`/patient/${id}`, data);
         return (res.data?.data ?? res.data);
     },
 

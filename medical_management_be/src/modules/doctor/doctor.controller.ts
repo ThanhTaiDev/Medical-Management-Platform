@@ -44,6 +44,7 @@ export class DoctorController {
     });
   }
 
+
   @Get('patients/:id')
   async getPatient(@Param('id') id: string, @UserInfo() user: IUserFromToken) {
     this.ensureDoctor(user);
