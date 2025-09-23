@@ -339,8 +339,8 @@ const DashboardLayout: React.FC = () => {
           </header>
 
           {/* Main Content Area */}
-          <main className="flex-1 p-8 bg-background overflow-auto">
-            <div className="min-h-full max-w-7xl mx-auto">
+          <main className="flex-1 min-h-0 p-8 bg-background overflow-auto">
+            <div className="h-full max-w-7xl mx-auto">
               <Outlet />
             </div>
           </main>
