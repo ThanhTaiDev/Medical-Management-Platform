@@ -25,7 +25,7 @@ export interface PaginationQuery {
 
 export const MedicationsApi = {
   list: async (params: PaginationQuery = {}) => {
-    const res = await axiosInstance.get("/admin/medications", {
+    const res = await axiosInstance.get("/admin/medications/get-all", {
       params: {
         page: params.page,
         limit: params.limit,
@@ -34,19 +34,20 @@ export const MedicationsApi = {
         isActive: params.isActive,
       },
     });
-    return res.data;
+    const payload = res.data?.data ?? res.data;
+    return payload;
   },
   create: async (dto: MedicationDto) => {
     const res = await axiosInstance.post("/admin/medications", dto);
-    return res.data;
+    return res.data?.data ?? res.data;
   },
   update: async (id: string, dto: MedicationDto) => {
     const res = await axiosInstance.patch(`/admin/medications/${id}`, dto);
-    return res.data;
+    return res.data?.data ?? res.data;
   },
   deactivate: async (id: string) => {
     const res = await axiosInstance.delete(`/admin/medications/${id}`);
-    return res.data;
+    return res.data?.data ?? res.data;
   },
 };
 

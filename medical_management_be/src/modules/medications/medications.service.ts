@@ -3,7 +3,7 @@ import { DatabaseService } from '@/core/database/database.service';
 
 @Injectable()
 export class MedicationsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService) { }
 
   async list(
     isActive?: boolean,
