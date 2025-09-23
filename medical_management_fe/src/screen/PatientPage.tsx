@@ -441,14 +441,65 @@ export default function PatientPage() {
               {loadingAdherence ? (
                 <div className="text-muted-foreground">Đang tải...</div>
               ) : Array.isArray(adherence) ? (
-                <div className="space-y-2">
-                  {(adherence as any[]).map((log: any) => (
-                    <div key={log.id} className="rounded border border-border/20 p-3">
-                      <div className="text-sm font-semibold text-foreground">{log.status}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(log.takenAt).toLocaleString()}</div>
-                      {log.notes && <div className="text-xs text-muted-foreground mt-1">{log.notes}</div>}
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  {(() => {
+                    const logs = (adherence as any[]) || [];
+                    const taken = logs.filter(l => l.status === 'TAKEN').length;
+                    const missed = logs.filter(l => l.status === 'MISSED').length;
+                    const skipped = logs.filter(l => l.status === 'SKIPPED').length;
+                    const total = logs.length || 1;
+                    const rate = Math.round((taken / total) * 100);
+                    // group by date
+                    const groups: Record<string, any[]> = {};
+                    logs.forEach((l) => {
+                      const d = new Date(l.takenAt);
+                      const key = isNaN(d.getTime()) ? 'Khác' : d.toISOString().slice(0,10);
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(l);
+                    });
+                    const orderedDates = Object.keys(groups).sort((a,b) => a < b ? 1 : -1);
+                    return (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <div className="rounded-lg border border-border/20 p-4">
+                            <div className="text-[11px] text-muted-foreground">Tỉ lệ tuân thủ</div>
+                            <div className="mt-1 text-2xl font-bold text-foreground">{rate}%</div>
+                          </div>
+                          <div className="rounded-lg border border-border/20 p-4">
+                            <div className="text-[11px] text-muted-foreground">Đã uống</div>
+                            <div className="mt-1 text-2xl font-bold text-emerald-700">{taken}</div>
+                          </div>
+                          <div className="rounded-lg border border-border/20 p-4">
+                            <div className="text-[11px] text-muted-foreground">Bỏ liều</div>
+                            <div className="mt-1 text-2xl font-bold text-amber-700">{missed}</div>
+                          </div>
+                          <div className="rounded-lg border border-border/20 p-4">
+                            <div className="text-[11px] text-muted-foreground">Bỏ qua</div>
+                            <div className="mt-1 text-2xl font-bold text-zinc-700">{skipped}</div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {orderedDates.map((dateKey) => (
+                            <div key={dateKey} className="rounded-xl border border-border/20 p-4 bg-background/60">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">{dateKey}</div>
+                              <div className="flex flex-wrap gap-2">
+                                {groups[dateKey].map((log) => (
+                                  <div key={log.id} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border/20 bg-background">
+                                    <span className="text-xs text-muted-foreground">{new Date(log.takenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span className={`${log.status === 'TAKEN' ? 'bg-emerald-100 text-emerald-700' : log.status === 'MISSED' ? 'bg-amber-100 text-amber-700' : 'bg-zinc-100 text-zinc-700'} inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium`}>
+                                      {log.status === 'TAKEN' ? 'Đã uống' : log.status === 'MISSED' ? 'Bỏ liều' : 'Bỏ qua'}
+                                    </span>
+                                    {log.notes && <span className="text-[11px] text-muted-foreground">• {log.notes}</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground">Không có dữ liệu</div>
