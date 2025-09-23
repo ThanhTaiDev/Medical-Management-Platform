@@ -7,6 +7,7 @@ import Login from "@/screen/Login";
 import DoctorManagement from "@/screen/DoctorManagement";
 import UserManagement from "@/screen/UserManagement";
 import HealthOverview from "@/screen/HealthOverview";
+import DoctorPatientsPage from "@/screen/DoctorPatientsPage";
 
 // Kiểm tra nếu người dùng đã đăng nhập
 const isAuthenticated = () => {
@@ -67,7 +68,7 @@ export const routes: RouteObject[] = [
       },
       {
         path: "patients",
-        element: <PatientPage />,
+        element: <DoctorPatientsPage />,
       },
       {
         path: "health-overview",

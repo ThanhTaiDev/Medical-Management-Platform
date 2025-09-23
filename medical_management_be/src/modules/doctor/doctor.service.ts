@@ -92,7 +92,7 @@ export class DoctorService {
     return this.getPatient(id);
   }
 
-  async updatePatientHistory(id: string, body: { conditions?: string[]; allergies?: string[]; surgeries?: string[]; familyHistory?: string; lifestyle?: string; currentMedications?: string[]; notes?: string }) {
+  async updatePatientHistory(id: string, body: { conditions?: string[]; conditionsOther?: string; allergies?: string[]; allergiesOther?: string; surgeries?: string[]; surgeriesOther?: string; familyHistory?: string; lifestyle?: string; currentMedications?: string[]; notes?: string; extras?: any }) {
     const user = await this.getPatient(id);
     const exists = await this.databaseService.client.patientMedicalHistory.findUnique({ where: { patientId: id } });
     if (!exists) {
@@ -100,12 +100,16 @@ export class DoctorService {
         data: {
           patientId: id,
           conditions: body.conditions ?? [],
+          conditionsOther: body.conditionsOther,
           allergies: body.allergies ?? [],
+          allergiesOther: body.allergiesOther,
           surgeries: body.surgeries ?? [],
+          surgeriesOther: body.surgeriesOther,
           familyHistory: body.familyHistory,
           lifestyle: body.lifestyle,
           currentMedications: body.currentMedications ?? [],
-          notes: body.notes
+          notes: body.notes,
+          extras: body.extras ?? undefined
         }
       });
     } else {
@@ -113,12 +117,16 @@ export class DoctorService {
         where: { patientId: id },
         data: {
           conditions: body.conditions,
+          conditionsOther: body.conditionsOther,
           allergies: body.allergies,
+          allergiesOther: body.allergiesOther,
           surgeries: body.surgeries,
+          surgeriesOther: body.surgeriesOther,
           familyHistory: body.familyHistory,
           lifestyle: body.lifestyle,
           currentMedications: body.currentMedications,
-          notes: body.notes
+          notes: body.notes,
+          extras: body.extras
         }
       });
     }

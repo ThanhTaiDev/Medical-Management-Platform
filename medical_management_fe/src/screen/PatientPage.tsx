@@ -94,7 +94,7 @@ export default function PatientPage() {
   const { data: adherence, isLoading: loadingAdherence } = useQuery({
     queryKey: ['patient-adherence'],
     queryFn: patientApi.getAdherence,
-    enabled: role === 'PATIENT' && activeTab === 'adherence'
+    enabled: role === 'PATIENT' && activeTab === 'adherence' 
   })
 
   const handleConfirmIntake = async () => {
@@ -109,6 +109,20 @@ export default function PatientPage() {
     queryClient.invalidateQueries({ queryKey: ['patient-overview'] })
     queryClient.invalidateQueries({ queryKey: ['patient-adherence'] })
     setConfirmItemId('')
+  }
+
+  const handleQuickConfirm = async (prescriptionId: string, prescriptionItemId: string) => {
+    try {
+      await patientApi.confirmIntake(prescriptionId, {
+        prescriptionItemId,
+        takenAt: new Date().toISOString(),
+        status: 'TAKEN',
+      })
+      queryClient.invalidateQueries({ queryKey: ['patient-ov-reminders'] })
+      queryClient.invalidateQueries({ queryKey: ['patient-reminders'] })
+      queryClient.invalidateQueries({ queryKey: ['patient-overview'] })
+      queryClient.invalidateQueries({ queryKey: ['patient-adherence'] })
+    } catch {}
   }
 
   // ============== ADMIN/DOCTOR PATIENT LIST ==============
@@ -507,6 +521,19 @@ export default function PatientPage() {
                                 {r.prescriptionId && <span className="h-3 w-px bg-border/50" />}
                                 {r.prescriptionId && <span>Đơn thuốc</span>}
                               </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button className="px-2 py-1 rounded-md border border-border/30 text-xs hover:bg-accent/30" onClick={() => handleQuickConfirm(r.prescriptionId, r.prescriptionItemId)}>
+                                Đã uống
+                              </button>
+                              <button className="px-2 py-1 rounded-md border border-border/30 text-xs hover:bg-accent/30" onClick={() => {
+                                setSelectedPrescriptionId(r.prescriptionId)
+                                const params = new URLSearchParams(location.search)
+                                params.set('tab', 'prescriptions')
+                                navigate({ pathname: '/dashboard/patients', search: params.toString() }, { replace: true })
+                              }}>
+                                Chi tiết
+                              </button>
                             </div>
                           </div>
                         </div>

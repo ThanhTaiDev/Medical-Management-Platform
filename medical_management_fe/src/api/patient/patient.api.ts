@@ -82,9 +82,14 @@ export const patientApi = {
         return (res.data?.data ?? res.data);
     },
 
+    async updatePatientHistory(id: string, body: { conditions?: string[]; allergies?: string[]; surgeries?: string[]; familyHistory?: string; lifestyle?: string; currentMedications?: string[]; notes?: string; extras?: any }) {
+        const res = await axiosInstance.put(`/doctor/patients/${id}/history`, body);
+        return (res.data?.data ?? res.data);
+    },
+
     async deletePatient(id: string): Promise<any> {
-        // No explicit delete endpoints found for doctor/admin patients; soft delete could be admin/users/:id
-        const res = await axiosInstance.delete(`/admin/users/${id}`);
+        // Doctor soft-delete patient
+        const res = await axiosInstance.delete(`/doctor/patients/${id}`);
         return (res.data?.data ?? res.data);
     },
 

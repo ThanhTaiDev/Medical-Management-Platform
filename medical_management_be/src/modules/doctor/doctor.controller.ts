@@ -3,10 +3,11 @@ import { DoctorService } from '@/modules/doctor/doctor.service';
 import { UserInfo } from '@/common/decorators/users.decorator';
 import { IUserFromToken } from '@/modules/users/types/user.type';
 import { UserRole } from '@prisma/client';
+import { UsersService } from '@/modules/users/users.service';
 
 @Controller('doctor')
 export class DoctorController {
-  constructor(private readonly doctorService: DoctorService) {}
+  constructor(private readonly doctorService: DoctorService, private readonly usersService: UsersService) {}
 
   private ensureDoctor(user: IUserFromToken) {
     if (user.roles !== UserRole.DOCTOR) {
@@ -66,6 +67,13 @@ export class DoctorController {
   ) {
     this.ensureDoctor(user);
     return this.doctorService.updatePatientHistory(id, body);
+  }
+
+  @Delete('patients/:id')
+  async deletePatient(@Param('id') id: string, @UserInfo() user: IUserFromToken) {
+    this.ensureDoctor(user);
+    // Soft delete patient via UsersService
+    return this.usersService.adminSoftDeleteUser(id);
   }
 
   // Kê đơn thuốc

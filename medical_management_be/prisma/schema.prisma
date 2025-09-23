@@ -75,10 +75,16 @@ model PatientMedicalHistory {
   patientId String  @unique
   // Bệnh nền (mảng chuỗi: đái tháo đường, tăng huyết áp...)
   conditions String[] @default([])
+  // Bệnh nền khác (free text)
+  conditionsOther String?
   // Dị ứng (thuốc/thực phẩm)
   allergies  String[] @default([])
+  // Dị ứng khác (free text)
+  allergiesOther String?
   // Phẫu thuật đã từng làm
   surgeries  String[] @default([])
+  // Phẫu thuật khác (free text)
+  surgeriesOther String?
   // Tiền sử gia đình
   familyHistory String?
   // Lối sống: hút thuốc, rượu bia, vận động...
@@ -87,6 +93,8 @@ model PatientMedicalHistory {
   currentMedications String[] @default([])
   // Ghi chú thêm
   notes String?
+  // Trường JSON linh hoạt lưu thông tin bổ sung dạng key-value
+  extras Json?
   // Ngày tạo/cập nhật
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
