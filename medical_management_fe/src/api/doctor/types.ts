@@ -18,6 +18,29 @@ export type MajorDoctor =
   | "TIEU_HOA" 
   | "THAN_TIET_NIEU";
 
+// Utility function to get Vietnamese name for specialty
+export const getMajorDoctorName = (major: MajorDoctor): string => {
+  const majorNames: Record<MajorDoctor, string> = {
+    "DINH_DUONG": "Dinh dưỡng",
+    "TAM_THAN": "Tâm thần", 
+    "TIM_MACH": "Tim mạch",
+    "NOI_TIET": "Nội tiết",
+    "NGOAI_KHOA": "Ngoại khoa",
+    "PHU_SAN": "Phụ sản",
+    "NHI_KHOA": "Nhi khoa",
+    "MAT": "Mắt",
+    "TAI_MUI_HONG": "Tai mũi họng",
+    "DA_LIEU": "Da liễu",
+    "XUONG_KHOP": "Xương khớp",
+    "THAN_KINH": "Thần kinh",
+    "UNG_BUOU": "Ung bướu",
+    "HO_HAP": "Hô hấp",
+    "TIEU_HOA": "Tiêu hóa",
+    "THAN_TIET_NIEU": "Thận tiết niệu"
+  };
+  return majorNames[major] || major;
+};
+
 export interface User {
   id: string;
   phoneNumber: string;

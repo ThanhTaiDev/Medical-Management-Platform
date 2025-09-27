@@ -31,7 +31,7 @@ import { MedicationsApi, MedicationDto } from "@/api/medications";
 import { UsersApi } from "@/api/user";
 import { patientApi } from "@/api/patient/patient.api";
 import { doctorApi } from "@/api/doctor/doctor.api";
-import { MajorDoctor, User as DoctorUser, CreateDoctorData, UpdateDoctorData } from "@/api/doctor/types";
+import { MajorDoctor, User as DoctorUser, CreateDoctorData, UpdateDoctorData, getMajorDoctorName } from "@/api/doctor/types";
 import {
   Pencil,
   Trash2,
@@ -552,109 +552,6 @@ const DoctorManagement: React.FC = () => {
               Bảng điều khiển bác sĩ
             </h1>
             <div className="flex gap-2">
-              {activeTab === "doctors" &&
-                (role === "DOCTOR" || role === "ADMIN") && (
-                  <Dialog
-                    open={openCreateDoctor}
-                    onOpenChange={setOpenCreateDoctor}
-                  >
-                    <DialogTrigger asChild>
-                      <Button className="relative bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-primary/20">
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-md opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="relative flex items-center gap-2">
-                          <Plus className="h-4 w-4" />
-                          Thêm bác sĩ
-                        </div>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Thêm bác sĩ mới</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-2">
-                        <div className="grid gap-2">
-                          <Label>Họ tên</Label>
-                          <Input
-                            value={createDoctorForm.fullName}
-                            onChange={(e) =>
-                              setCreateDoctorForm((s) => ({
-                                ...s,
-                                fullName: e.target.value,
-                              }))
-                            }
-                            placeholder="BS. Nguyễn Văn A"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label>Số điện thoại</Label>
-                          <Input
-                            value={createDoctorForm.phoneNumber}
-                            onChange={(e) =>
-                              setCreateDoctorForm((s) => ({
-                                ...s,
-                                phoneNumber: e.target.value,
-                              }))
-                            }
-                            placeholder="09xxxxxxxx"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label>Mật khẩu</Label>
-                          <Input
-                            type="password"
-                            value={createDoctorForm.password}
-                            onChange={(e) =>
-                              setCreateDoctorForm((s) => ({
-                                ...s,
-                                password: e.target.value,
-                              }))
-                            }
-                            placeholder="••••••"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label>Chuyên khoa</Label>
-                          <select
-                            value={createDoctorForm.majorDoctor}
-                            onChange={(e) =>
-                              setCreateDoctorForm((s) => ({
-                                ...s,
-                                majorDoctor: e.target.value as MajorDoctor,
-                              }))
-                            }
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <option value="TAM_THAN">Tâm thần</option>
-                            <option value="TIM_MACH">Tim mạch</option>
-                            <option value="NOI_TIET">Nội tiết</option>
-                            <option value="NGOAI_KHOA">Ngoại khoa</option>
-                            <option value="PHU_SAN">Phụ sản</option>
-                            <option value="NHI_KHOA">Nhi khoa</option>
-                            <option value="MAT">Mắt</option>
-                            <option value="TAI_MUI_HONG">Tai mũi họng</option>
-                            <option value="DA_LIEU">Da liễu</option>
-                            <option value="XUONG_KHOP">Xương khớp</option>
-                            <option value="THAN_KINH">Thần kinh</option>
-                            <option value="UNG_BUOU">Ung bướu</option>
-                            <option value="HO_HAP">Hô hấp</option>
-                            <option value="TIEU_HOA">Tiêu hóa</option>
-                            <option value="THAN_TIET_NIEU">Thận tiết niệu</option>
-                            <option value="DINH_DUONG">Dinh dưỡng</option>
-                          </select>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          onClick={handleCreateDoctor}
-                          disabled={createDoctorMutation.isPending}
-                          className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-                        >
-                          {createDoctorMutation.isPending ? "Đang tạo..." : "Tạo bác sĩ"}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                )}
               {activeTab === "patients" &&
                 (role === "DOCTOR" || role === "ADMIN") && (
                   <Dialog
@@ -670,7 +567,7 @@ const DoctorManagement: React.FC = () => {
                         </div>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="sm:max-w-[500px]">
                       <DialogHeader>
                         <DialogTitle>Thêm bệnh nhân</DialogTitle>
                       </DialogHeader>
@@ -871,7 +768,7 @@ const DoctorManagement: React.FC = () => {
                       </div>
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                       <DialogTitle>
                         {editingMedId ? "Sửa thuốc" : "Thêm thuốc"}
@@ -985,7 +882,16 @@ const DoctorManagement: React.FC = () => {
             onValueChange={(v) => setActiveTab(v as any)}
             className="space-y-6"
           >
-            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-background via-muted/30 to-background p-2 rounded-2xl border border-border/20 shadow-lg backdrop-blur-sm">
+            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-background via-muted/30 to-background p-2 rounded-2xl border border-border/20 shadow-lg backdrop-blur-sm">
+            <TabsTrigger
+                value="overview"
+                className="group flex items-center gap-2 relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-primary/10 hover:scale-102"
+              >
+                <BarChart3 className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+                <span className="hidden sm:inline font-medium">Tổng quan</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </TabsTrigger>
+
               <TabsTrigger
                 value="patients"
                 className="group flex items-center gap-2 relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-primary/10 hover:scale-102"
@@ -1003,22 +909,6 @@ const DoctorManagement: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </TabsTrigger>
               <TabsTrigger
-                value="overview"
-                className="group flex items-center gap-2 relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-primary/10 hover:scale-102"
-              >
-                <BarChart3 className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-                <span className="hidden sm:inline font-medium">Tổng quan</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </TabsTrigger>
-              <TabsTrigger
-                value="alerts"
-                className="group flex items-center gap-2 relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-primary/10 hover:scale-102"
-              >
-                <AlertTriangle className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-                <span className="hidden sm:inline font-medium">Cảnh báo</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </TabsTrigger>
-              <TabsTrigger
                 value="doctors"
                 className="group flex items-center gap-2 relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-primary/10 hover:scale-102"
               >
@@ -1026,6 +916,7 @@ const DoctorManagement: React.FC = () => {
                 <span className="hidden sm:inline font-medium">Bác sĩ</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </TabsTrigger>
+            
             </TabsList>
 
             <TabsContent value="patients">
@@ -1281,7 +1172,7 @@ const DoctorManagement: React.FC = () => {
                   })
                 }
               >
-                <DialogContent>
+                <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
                     <DialogTitle>Cập nhật hồ sơ</DialogTitle>
                   </DialogHeader>
@@ -1375,7 +1266,7 @@ const DoctorManagement: React.FC = () => {
                   })
                 }
               >
-                <DialogContent>
+                <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
                     <DialogTitle>Cập nhật tiền sử</DialogTitle>
                   </DialogHeader>
@@ -2037,7 +1928,7 @@ const DoctorManagement: React.FC = () => {
                             Tạo bác sĩ
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
+                        <DialogContent className="sm:max-w-[500px]">
                           <DialogHeader>
                             <DialogTitle>Tạo bác sĩ mới</DialogTitle>
                           </DialogHeader>
@@ -2094,6 +1985,7 @@ const DoctorManagement: React.FC = () => {
                                 }
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                               >
+                                <option value="DINH_DUONG">Dinh dưỡng</option>
                                 <option value="TAM_THAN">Tâm thần</option>
                                 <option value="TIM_MACH">Tim mạch</option>
                                 <option value="NOI_TIET">Nội tiết</option>
@@ -2200,7 +2092,7 @@ const DoctorManagement: React.FC = () => {
                             </TableCell>
                             <TableCell className="py-4">
                               <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300/50">
-                                {doctor.majorDoctor || "-"}
+                                {doctor.majorDoctor ? getMajorDoctorName(doctor.majorDoctor) : "-"}
                               </span>
                             </TableCell>
                             <TableCell className="py-4">
@@ -2320,7 +2212,7 @@ const DoctorManagement: React.FC = () => {
 
       {/* Edit Doctor Dialog */}
       <Dialog open={openEditDoctor.open} onOpenChange={(open) => setOpenEditDoctor({ open })}>
-        <DialogContent>
+                        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Chỉnh sửa bác sĩ</DialogTitle>
           </DialogHeader>
@@ -2413,7 +2305,7 @@ const DoctorManagement: React.FC = () => {
 
       {/* Delete Doctor Dialog */}
       <Dialog open={openDeleteDoctor.open} onOpenChange={(open) => setOpenDeleteDoctor({ open })}>
-        <DialogContent>
+                        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Xác nhận xóa bác sĩ</DialogTitle>
           </DialogHeader>
