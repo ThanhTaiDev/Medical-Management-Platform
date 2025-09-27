@@ -94,6 +94,103 @@
       ]
     },
     {
+      "name": "Doctor Management",
+      "item": [
+        {
+          "name": "Doctor - List All",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/doctor/doctor?q={{q}}&page={{page}}&limit={{limit}}&sortBy={{sortBy}}&sortOrder={{sortOrder}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctor", "doctor"],
+              "query": [
+                { "key": "q", "value": "{{q}}" },
+                { "key": "page", "value": "{{page}}" },
+                { "key": "limit", "value": "{{limit}}" },
+                { "key": "sortBy", "value": "{{sortBy}}" },
+                { "key": "sortOrder", "value": "{{sortOrder}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/doctor/doctor",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctor", "doctor"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{doctorFullName}}\",\n  \"phoneNumber\": \"{{doctorPhoneNumber}}\",\n  \"password\": \"{{doctorPassword}}\",\n  \"majorDoctor\": \"{{majorDoctor}}\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor - Get by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/doctor/doctor/{{doctorId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctor", "doctor", "{{doctorId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/doctor/doctor/{{doctorId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctor", "doctor", "{{doctorId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{doctorFullName}}\",\n  \"phoneNumber\": \"{{doctorPhoneNumber}}\",\n  \"majorDoctor\": \"{{majorDoctor}}\",\n  \"status\": \"{{doctorStatus}}\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor - Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/doctor/doctor/{{doctorId}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "doctor", "doctor", "{{doctorId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Users",
       "item": [
         {
@@ -788,14 +885,14 @@
     }
   ],
   "variable": [
-    { "key": "base_url", "value": "http://localhost:9944" },
+    { "key": "base_url", "value": "http://localhost:9933" },
     { "key": "access_token", "value": "" },
     { "key": "refresh_token", "value": "" },
-    { "key": "phoneNumber", "value": "" },
-    { "key": "password", "value": "" },
-    { "key": "fullName", "value": "" },
-    { "key": "newUserPhone", "value": "" },
-    { "key": "newUserPassword", "value": "" },
+    { "key": "phoneNumber", "value": "0931000001" },
+    { "key": "password", "value": "123123" },
+    { "key": "fullName", "value": "Test User" },
+    { "key": "newUserPhone", "value": "0900000999" },
+    { "key": "newUserPassword", "value": "123456" },
     { "key": "newUserRole", "value": "DOCTOR" },
     { "key": "userId", "value": "" },
     { "key": "patientId", "value": "" },
@@ -803,14 +900,20 @@
     { "key": "prescriptionItemId", "value": "" },
     { "key": "medicationId", "value": "" },
     { "key": "alertId", "value": "" },
+    { "key": "doctorId", "value": "cdda1091-1851-4e4b-b39b-710ca68d7c66" },
+    { "key": "doctorFullName", "value": "Dr. Test Doctor" },
+    { "key": "doctorPhoneNumber", "value": "0900000999" },
+    { "key": "doctorPassword", "value": "123456" },
+    { "key": "majorDoctor", "value": "DINH_DUONG" },
+    { "key": "doctorStatus", "value": "ACTIVE" },
     { "key": "gender", "value": "MALE" },
     { "key": "birthDate", "value": "1990-01-01" },
-    { "key": "address", "value": "" },
-    { "key": "medicationName", "value": "" },
-    { "key": "strength", "value": "" },
-    { "key": "form", "value": "" },
-    { "key": "unit", "value": "" },
-    { "key": "description", "value": "" },
+    { "key": "address", "value": "123 Test Street" },
+    { "key": "medicationName", "value": "Test Medication" },
+    { "key": "strength", "value": "500mg" },
+    { "key": "form", "value": "tablet" },
+    { "key": "unit", "value": "mg" },
+    { "key": "description", "value": "Test description" },
     { "key": "takenAt", "value": "2025-01-01T08:00:00.000Z" },
     { "key": "adherenceStatus", "value": "TAKEN" },
     { "key": "q", "value": "" },

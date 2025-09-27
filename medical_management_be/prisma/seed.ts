@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, UserStatus, Gender, AdherenceStatus, AlertType, PrescriptionStatus } from '@prisma/client';
+import { PrismaClient, UserRole, UserStatus, Gender, AdherenceStatus, AlertType, PrescriptionStatus, MajorDoctor } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -44,6 +44,7 @@ async function upsertUser(params: {
   fullName: string;
   role: UserRole;
   status?: UserStatus;
+  majorDoctor?: MajorDoctor;
 }) {
   const passwordHash = await bcrypt.hash(params.password ?? DEFAULT_PASSWORD, 10);
   return prisma.user.upsert({
@@ -54,7 +55,8 @@ async function upsertUser(params: {
       password: passwordHash,
       fullName: params.fullName,
       role: params.role,
-      status: params.status ?? UserStatus.ACTIVE
+      status: params.status ?? UserStatus.ACTIVE,
+      majorDoctor: params.majorDoctor
     }
   });
 }
@@ -144,12 +146,14 @@ async function seed() {
     role: UserRole.ADMIN
   });
 
+  const majorDoctors = Object.values(MajorDoctor);
   const doctors: Array<{ id: string; fullName: string }> = [];
   for (let i = 1; i <= 10; i++) {
     const d = await upsertUser({
       phoneNumber: generateVietnamPhone(i),
       fullName: `BS. ${generateVietnamName(i)}`,
-      role: UserRole.DOCTOR
+      role: UserRole.DOCTOR,
+      majorDoctor: majorDoctors[i % majorDoctors.length]
     });
     doctors.push({ id: d.id, fullName: d.fullName });
   }
