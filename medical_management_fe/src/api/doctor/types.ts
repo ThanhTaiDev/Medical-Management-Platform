@@ -1,13 +1,57 @@
 export type UserRole = "ADMIN" | "DOCTOR" | "PATIENT";
 
+export type MajorDoctor = 
+  | "DINH_DUONG" 
+  | "TAM_THAN" 
+  | "TIM_MACH" 
+  | "NOI_TIET" 
+  | "NGOAI_KHOA" 
+  | "PHU_SAN" 
+  | "NHI_KHOA" 
+  | "MAT" 
+  | "TAI_MUI_HONG" 
+  | "DA_LIEU" 
+  | "XUONG_KHOP" 
+  | "THAN_KINH" 
+  | "UNG_BUOU" 
+  | "HO_HAP" 
+  | "TIEU_HOA" 
+  | "THAN_TIET_NIEU";
+
+// Utility function to get Vietnamese name for specialty
+export const getMajorDoctorName = (major: MajorDoctor): string => {
+  const majorNames: Record<MajorDoctor, string> = {
+    "DINH_DUONG": "Dinh dưỡng",
+    "TAM_THAN": "Tâm thần", 
+    "TIM_MACH": "Tim mạch",
+    "NOI_TIET": "Nội tiết",
+    "NGOAI_KHOA": "Ngoại khoa",
+    "PHU_SAN": "Phụ sản",
+    "NHI_KHOA": "Nhi khoa",
+    "MAT": "Mắt",
+    "TAI_MUI_HONG": "Tai mũi họng",
+    "DA_LIEU": "Da liễu",
+    "XUONG_KHOP": "Xương khớp",
+    "THAN_KINH": "Thần kinh",
+    "UNG_BUOU": "Ung bướu",
+    "HO_HAP": "Hô hấp",
+    "TIEU_HOA": "Tiêu hóa",
+    "THAN_TIET_NIEU": "Thận tiết niệu"
+  };
+  return majorNames[major] || major;
+};
+
 export interface User {
   id: string;
   phoneNumber: string;
   fullName: string;
   role: UserRole;
-  status: "ACTIVE" | "INACTIVE";
-  majorDoctor?: "DINH_DUONG" | "TAM_THAN";
+  status: "ACTIVE" | "INACTIVE" | "BLOCKED";
+  majorDoctor?: MajorDoctor;
 }
+
+// Alias for doctor user type
+export type DoctorUser = User;
 
 export interface Doctor {
   id: string;
@@ -60,22 +104,20 @@ export interface AvailableDoctorsResponse {
 
 export interface DoctorListResponse {
   data: User[];
+  total?: number;
   statusCode: number;
 }
 
 export interface CreateDoctorData {
   phoneNumber: string;
   fullName: string;
-  majorDoctor: "DINH_DUONG" | "TAM_THAN";
+  majorDoctor: MajorDoctor;
   password: string;
-  role: UserRole;
 }
 
 export interface UpdateDoctorData {
   fullName?: string;
-  majorDoctor?: "DINH_DUONG" | "TAM_THAN";
-  status?: "ACTIVE" | "INACTIVE";
-  role?: UserRole;
-  password?: string;
-  oldPassword?: string;
+  phoneNumber?: string;
+  majorDoctor?: MajorDoctor;
+  status?: "ACTIVE" | "INACTIVE" | "BLOCKED";
 }

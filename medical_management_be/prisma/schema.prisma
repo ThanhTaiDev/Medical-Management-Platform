@@ -20,6 +20,8 @@ model User {
   fullName    String
   // Vai trò: ADMIN/DOCTOR/PATIENT
   role        UserRole   @default(PATIENT)
+  // Chuyên khoa bác sĩ (chỉ áp dụng cho DOCTOR)
+  majorDoctor MajorDoctor?
   // Trạng thái hoạt động
   status      UserStatus @default(ACTIVE)
   // Ngày tạo
@@ -246,6 +248,25 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   BLOCKED
+}
+
+enum MajorDoctor {
+  DINH_DUONG
+  TAM_THAN
+  TIM_MACH
+  NOI_TIET
+  NGOAI_KHOA
+  PHU_SAN
+  NHI_KHOA
+  MAT
+  TAI_MUI_HONG
+  DA_LIEU
+  XUONG_KHOP
+  THAN_KINH
+  UNG_BUOU
+  HO_HAP
+  TIEU_HOA
+  THAN_TIET_NIEU
 }
 
 enum Gender {
