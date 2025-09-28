@@ -405,7 +405,7 @@ export default function DoctorPatientsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {patients.map((p: any) => (
                 <div key={p.id} className="group relative">
-                  <div className="bg-gradient-to-br from-background via-background to-background/90 border border-border/30 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:border-border/50 hover:-translate-y-0.5">
+                  <div className="bg-gradient-to-br from-background via-background to-background/90 border border-border/30 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 hover:border-border/50 hover:-translate-y-0.5 h-full flex flex-col">
                     {/* Header with avatar and status */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -426,30 +426,34 @@ export default function DoctorPatientsPage() {
                       </div>
                     </div>
 
-                    {/* Patient info */}
-                    <div className="space-y-2.5 mb-5">
-                      {p.userInfo && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <div className="w-1 h-1 rounded-full bg-blue-500"></div>
-                          <span>{p.userInfo.gender === 'MALE' ? 'Nam' : p.userInfo.gender === 'FEMALE' ? 'Nữ' : 'Khác'}</span>
-                          <span className="text-muted-foreground/60">•</span>
-                          <span>{calculateAge(p) ? `${calculateAge(p)} tuổi` : 'N/A'}</span>
-                        </div>
-                      )}
+                    {/* Patient info - Fixed height section - Updated */}
+                    <div className="space-y-2.5 mb-5 flex-1">
+                      {/* Gender and Age - Always show */}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="w-1 h-1 rounded-full bg-blue-500"></div>
+                        <span>
+                          {p.profile?.gender === 'MALE' ? 'Nam' : 
+                           p.profile?.gender === 'FEMALE' ? 'Nữ' : 
+                           p.userInfo?.gender === 'MALE' ? 'Nam' : 
+                           p.userInfo?.gender === 'FEMALE' ? 'Nữ' : 'Chưa cập nhật'}
+                        </span>
+                        <span className="text-muted-foreground/60">•</span>
+                        <span>{calculateAge(p) ? `${calculateAge(p)} tuổi` : 'Chưa cập nhật'}</span>
+                      </div>
                       
-                      {p.profile?.address && (
-                        <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <div className="w-1 h-1 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></div>
-                          <span className="line-clamp-2 leading-relaxed">{p.profile.address}</span>
-                        </div>
-                      )}
+                      {/* Address - Fixed height with ellipsis */}
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <div className="w-1 h-1 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></div>
+                        <span className="line-clamp-2 leading-relaxed h-8 flex items-center">
+                          {p.profile?.address || p.userInfo?.address || 'Chưa cập nhật địa chỉ'}
+                        </span>
+                      </div>
 
-                      {p.medicalHistory && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <div className="w-1 h-1 rounded-full bg-purple-500"></div>
-                          <span>Có tiền sử bệnh án</span>
-                        </div>
-                      )}
+                      {/* Medical History - Always show */}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="w-1 h-1 rounded-full bg-purple-500"></div>
+                        <span>{p.medicalHistory ? 'Có tiền sử bệnh án' : 'Chưa có tiền sử bệnh án'}</span>
+                      </div>
                     </div>
 
                     {/* Actions */}
