@@ -235,13 +235,123 @@ export default function DoctorPatientsPage() {
 
       {/* Medical History Dialog */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="sm:max-w-[1100px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Tiền sử bệnh án</DialogTitle>
             <DialogDescription>Nhập/điều chỉnh thông tin tiền sử cho bệnh nhân</DialogDescription>
           </DialogHeader>
-          <div className='space-y-4'>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <div className='grid grid-cols-3 gap-6'>
+            {/* Column 1: Patient info */}
+            <div className='col-span-1'>
+            {historyPatient && (
+              <div className='rounded-lg border border-border/20 bg-background/60 p-4 shadow-sm h-full'>
+                <div className='text-xs text-muted-foreground mb-3'>Thông tin bệnh nhân</div>
+                <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+                  <div>
+                    <div className='text-sm font-medium text-foreground'>{historyPatient.fullName || '—'}</div>
+                    <div className='text-xs text-muted-foreground'>{historyPatient.phoneNumber || ''}</div>
+                  </div>
+                  <div>
+                    <div className='text-xs text-muted-foreground'>Giới tính</div>
+                    <div className='text-sm text-foreground'>{historyPatient.userInfo?.gender || '—'}</div>
+                  </div>
+                  <div>
+                    <div className='text-xs text-muted-foreground'>Tuổi</div>
+                    <div className='text-sm text-foreground'>
+                      {historyPatient.userInfo?.birthYear 
+                        ? `${new Date().getFullYear() - historyPatient.userInfo.birthYear} tuổi`
+                        : '—'
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <div className='text-xs text-muted-foreground'>Trạng thái</div>
+                    <div className='text-sm text-foreground'>{historyPatient.status || '—'}</div>
+                  </div>
+                </div>
+                {historyPatient.userInfo?.specificAddress && (
+                  <div className='mt-3'>
+                    <div className='text-xs text-muted-foreground'>Địa chỉ</div>
+                    <div className='text-sm text-foreground'>{historyPatient.userInfo.specificAddress}</div>
+                  </div>
+                )}
+                {historyPatient.medicalHistory && (
+                  <div className='mt-4 grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div>
+                      <div className='text-xs text-muted-foreground mb-1'>Bệnh nền</div>
+                      <div className='text-sm text-foreground'>
+                        {historyPatient.medicalHistory.conditions?.length 
+                          ? historyPatient.medicalHistory.conditions.join(', ')
+                          : 'Chưa có'
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <div className='text-xs text-muted-foreground mb-1'>Dị ứng</div>
+                      <div className='text-sm text-foreground'>
+                        {historyPatient.medicalHistory.allergies?.length 
+                          ? historyPatient.medicalHistory.allergies.join(', ')
+                          : 'Chưa có'
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <div className='text-xs text-muted-foreground mb-1'>Phẫu thuật</div>
+                      <div className='text-sm text-foreground'>
+                        {historyPatient.medicalHistory.surgeries?.length 
+                          ? historyPatient.medicalHistory.surgeries.join(', ')
+                          : 'Chưa có'
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <div className='text-xs text-muted-foreground mb-1'>Thuốc đang dùng</div>
+                      <div className='text-sm text-foreground'>
+                        {historyPatient.medicalHistory.currentMedications?.length 
+                          ? historyPatient.medicalHistory.currentMedications.join(', ')
+                          : 'Chưa có'
+                        }
+                      </div>
+                    </div>
+                    {historyPatient.medicalHistory.familyHistory && (
+                      <div>
+                        <div className='text-xs text-muted-foreground mb-1'>Tiền sử gia đình</div>
+                        <div className='text-sm text-foreground'>{historyPatient.medicalHistory.familyHistory}</div>
+                      </div>
+                    )}
+                    {historyPatient.medicalHistory.lifestyle && (
+                      <div>
+                        <div className='text-xs text-muted-foreground mb-1'>Lối sống</div>
+                        <div className='text-sm text-foreground'>{historyPatient.medicalHistory.lifestyle}</div>
+                      </div>
+                    )}
+                    {historyPatient.medicalHistory.notes && (
+                      <div>
+                        <div className='text-xs text-muted-foreground mb-1'>Ghi chú</div>
+                        <div className='text-sm text-foreground'>{historyPatient.medicalHistory.notes}</div>
+                      </div>
+                    )}
+                    {historyPatient.medicalHistory.extras && Object.keys(historyPatient.medicalHistory.extras).length > 0 && (
+                      <div className='md:col-span-2'>
+                        <div className='text-xs text-muted-foreground mb-1'>Thông tin khác</div>
+                        <div className='text-sm text-foreground'>
+                          {Object.entries(historyPatient.medicalHistory.extras).map(([key, value]) => (
+                            <div key={key} className='inline-block mr-2'>
+                              <span className='font-medium'>{key}:</span> {String(value)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            </div>
+
+            {/* Column 2: Health + Extra */}
+            <div className='col-span-1'>
+              <div className='space-y-4'>
               <div className='rounded-xl border border-border/20 bg-gradient-to-br from-background to-background/50 p-4 shadow-sm'>
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
@@ -321,8 +431,12 @@ export default function DoctorPatientsPage() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
-            <div className='rounded-xl border border-border/20 bg-gradient-to-br from-background to-background/50 p-4 shadow-sm'>
+
+            {/* Column 3: Custom fields */}
+            <div className='col-span-1'>
+            <div className='rounded-xl border border-border/20 bg-gradient-to-br from-background to-background/50 p-4 shadow-sm h-full'>
               <div className="mb-3 flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-purple-500"></div>
                 <h3 className="text-sm font-semibold text-foreground">Thông tin tùy chỉnh</h3>
@@ -370,6 +484,7 @@ export default function DoctorPatientsPage() {
                   Thêm dòng
                 </Button>
               </div>
+            </div>
             </div>
           </div>
           <DialogFooter className="gap-3">
