@@ -120,6 +120,10 @@ const DoctorManagement: React.FC = () => {
     open: boolean;
     doctor?: DoctorUser;
   }>({ open: false });
+  const [openDeletePatient, setOpenDeletePatient] = useState<{
+    open: boolean;
+    patient?: any;
+  }>({ open: false });
 
   // Form state
   const [createForm, setCreateForm] = useState<PatientCreateDto>({
@@ -465,7 +469,11 @@ const DoctorManagement: React.FC = () => {
   };
 
   const handleOpenDelete = (p: any) => {
-    const id = p?.id;
+    setOpenDeletePatient({ open: true, patient: p });
+  };
+
+  const handleDeletePatient = () => {
+    const id = openDeletePatient.patient?.id;
     if (!id) return;
     patientApi
       .deletePatient(id)
@@ -475,6 +483,7 @@ const DoctorManagement: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: ["patient-get-all"] });
         
         toast.success("Đã xóa bệnh nhân");
+        setOpenDeletePatient({ open: false });
       })
       .catch((e) =>
         toast.error(e?.response?.data?.message || "Xóa bệnh nhân thất bại")
@@ -2116,7 +2125,11 @@ const DoctorManagement: React.FC = () => {
 
       {/* Edit Doctor Dialog */}
       <Dialog open={openEditDoctor.open} onOpenChange={(open) => setOpenEditDoctor({ open })}>
-        <DialogContent className="sm:max-w-[500px]">
+        {/* Overlay with blur - only render when dialog is open */}
+        {openEditDoctor.open && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in-0" aria-hidden="true" />
+        )}
+        <DialogContent className="sm:max-w-[500px] rounded-2xl border border-border/20 shadow-2xl bg-card/95 backdrop-blur-md">
           <DialogHeader>
             <DialogTitle>Chỉnh sửa bác sĩ</DialogTitle>
           </DialogHeader>
@@ -2209,7 +2222,11 @@ const DoctorManagement: React.FC = () => {
 
       {/* Delete Doctor Dialog */}
       <Dialog open={openDeleteDoctor.open} onOpenChange={(open) => setOpenDeleteDoctor({ open })}>
-        <DialogContent className="sm:max-w-[500px]">
+        {/* Overlay with blur - only render when dialog is open */}
+        {openDeleteDoctor.open && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in-0" aria-hidden="true" />
+        )}
+        <DialogContent className="sm:max-w-[500px] rounded-2xl border border-border/20 shadow-2xl bg-card/95 backdrop-blur-md">
           <DialogHeader>
             <DialogTitle>Xác nhận xóa bác sĩ</DialogTitle>
           </DialogHeader>
@@ -2237,6 +2254,61 @@ const DoctorManagement: React.FC = () => {
               {deleteDoctorMutation.isPending ? "Đang xóa..." : "Xóa"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Patient Dialog */}
+      <Dialog open={openDeletePatient.open} onOpenChange={(open) => setOpenDeletePatient({ open })}>
+        {/* Overlay with blur - only render when dialog is open */}
+        {openDeletePatient.open && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in-0" aria-hidden="true" />
+        )}
+        <DialogContent className="sm:max-w-[520px] rounded-2xl border border-border/20 shadow-2xl bg-card/95 backdrop-blur-md p-0 overflow-hidden">
+          <div className="p-6 border-b border-border/10 bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm">
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <DialogTitle className="text-lg font-bold">Xác nhận xóa bệnh nhân</DialogTitle>
+                  <p className="text-xs text-muted-foreground">Hành động này không thể hoàn tác</p>
+                </div>
+              </div>
+            </DialogHeader>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="flex items-start gap-3 rounded-xl border border-border/10 bg-background/50 p-4">
+              <div className="w-9 h-9 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-9 0h10" />
+                </svg>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Bạn sắp xóa bệnh nhân</p>
+                <p className="text-base font-semibold text-foreground">{openDeletePatient.patient?.fullName}</p>
+                <p className="text-xs text-muted-foreground">Dữ liệu liên quan có thể bị ảnh hưởng. Vui lòng xác nhận.</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 border-t border-border/10 bg-background/40 flex items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setOpenDeletePatient({ open: false })}
+              className="rounded-lg"
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeletePatient}
+              className="rounded-lg"
+            >
+              Xóa
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>
