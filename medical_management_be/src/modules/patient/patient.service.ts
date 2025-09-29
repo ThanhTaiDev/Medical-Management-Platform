@@ -190,7 +190,29 @@ export class PatientService {
   async adherenceHistory(patientId: string) {
     const logs = await this.databaseService.client.adherenceLog.findMany({
       where: { patientId },
-      orderBy: { takenAt: 'desc' }
+      orderBy: { takenAt: 'desc' },
+      include: {
+        prescription: {
+          include: {
+            doctor: {
+              select: {
+                fullName: true
+              }
+            }
+          }
+        },
+        prescriptionItem: {
+          include: {
+            medication: {
+              select: {
+                name: true,
+                strength: true,
+                form: true
+              }
+            }
+          }
+        }
+      }
     });
     return logs;
   }

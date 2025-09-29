@@ -57,6 +57,20 @@ interface AdherenceLog {
   takenAt: string;
   status: 'TAKEN' | 'MISSED' | 'SKIPPED';
   notes?: string;
+  prescription?: {
+    doctor?: {
+      fullName: string;
+    };
+  };
+  prescriptionItem?: {
+    dosage: string;
+    route?: string;
+    medication?: {
+      name: string;
+      strength: string;
+      form: string;
+    };
+  };
 }
 
 interface Alert {
@@ -833,29 +847,96 @@ export default function PatientPage() {
                         <span className="ml-2 text-sm text-muted-foreground">Đang tải...</span>
                       </div>
                     ) : Array.isArray(ovAdherence) && ovAdherence.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {ovAdherence.slice(0, 8).map((log: AdherenceLog) => (
-                          <div key={log.id} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border/20 bg-background hover:bg-muted/50 transition-colors">
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(log.takenAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                            <Badge className={`text-xs ${getStatusColor(log.status)}`}>
-                              {getStatusText(log.status)}
-                            </Badge>
-                            {log.notes && (
-                              <span className="text-[11px] text-muted-foreground">
-                                • {log.notes}
-                              </span>
-                            )}
+                      <div className="max-h-96 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+                        {ovAdherence.map((log: AdherenceLog) => (
+                          <div key={log.id} className="rounded-lg border border-border/20 p-4 hover:shadow-md transition-all duration-200">
+                            <div className="flex items-start gap-3">
+                              {/* Time Badge */}
+                              <div className="shrink-0">
+                                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex flex-col items-center justify-center">
+                                  <div className="text-xs font-bold">
+                                    {new Date(log.takenAt).toLocaleDateString('vi-VN', { day: '2-digit' })}
+                                  </div>
+                                  <div className="text-[10px] opacity-90">
+                                    {new Date(log.takenAt).toLocaleDateString('vi-VN', { month: 'short' })}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant={log.status === 'TAKEN' ? 'default' : log.status === 'MISSED' ? 'destructive' : 'secondary'}
+                                      className="text-xs"
+                                    >
+                                      {getStatusText(log.status)}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(log.takenAt).toLocaleTimeString('vi-VN', {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {new Date(log.takenAt).toLocaleDateString('vi-VN', {
+                                      weekday: 'short',
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Medication Details */}
+                                {log.prescriptionItem && (
+                                  <div className="bg-muted/30 rounded-md p-2 mt-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-medium text-foreground">
+                                        {log.prescriptionItem.medication?.name || "Thuốc"}
+                                      </span>
+                                      <Badge variant="outline" className="text-[10px]">
+                                        {log.prescriptionItem.dosage}
+                                      </Badge>
+                                      {log.prescriptionItem.route && (
+                                        <Badge variant="secondary" className="text-[10px]">
+                                          {translateRoute(log.prescriptionItem.route)}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {log.prescriptionItem.medication?.strength && (
+                                      <p className="text-[10px] text-muted-foreground">
+                                        {log.prescriptionItem.medication.strength} • {log.prescriptionItem.medication.form}
+                                      </p>
+                                    )}
+                                    {log.prescription?.doctor?.fullName && (
+                                      <p className="text-[10px] text-muted-foreground mt-1">
+                                        Bác sĩ: {log.prescription.doctor.fullName}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Notes - only show if it's not a uniqueDoseId */}
+                                {log.notes && !log.notes.includes('-') && (
+                                  <div className="bg-muted/30 rounded-md p-2 mt-2">
+                                    <p className="text-xs text-muted-foreground">
+                                      {log.notes}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         ))}
-                        {ovAdherence.length > 8 && (
-                          <div className="w-full text-center">
+
+                        {/* Scroll indicator */}
+                        {ovAdherence.length > 4 && (
+                          <div className="text-center py-2">
                             <p className="text-xs text-muted-foreground">
-                              +{ovAdherence.length - 8} ghi nhận khác
+                              Cuộn để xem thêm nhật ký
                             </p>
                           </div>
                         )}
@@ -1687,7 +1768,7 @@ export default function PatientPage() {
                                         ? "Bỏ liều"
                                         : "Bỏ qua"}
                                     </span>
-                                    {log.notes && (
+                                    {log.notes && !log.notes.includes('-') && (
                                       <span className="text-[11px] text-muted-foreground">
                                         • {log.notes}
                                       </span>
