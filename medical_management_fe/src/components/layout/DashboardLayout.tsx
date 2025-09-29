@@ -33,11 +33,6 @@ const adminMenuItems = [
     icon: Stethoscope,
   },
   {
-    title: "Bệnh nhân",
-    url: "/dashboard/patients",
-    icon: Users,
-  },
-  {
     title: "Quản lý tài khoản",
     url: "/dashboard/user-management",
     icon: UserRound,

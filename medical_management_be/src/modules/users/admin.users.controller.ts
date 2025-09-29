@@ -40,7 +40,8 @@ export class AdminUsersController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('sortBy') sortBy?: string,
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc'
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query('search') search?: string
   ) {
     this.ensureAdmin(user);
     return this.usersService.adminListUsers({
@@ -48,7 +49,8 @@ export class AdminUsersController {
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
       sortBy,
-      sortOrder
+      sortOrder,
+      search
     });
   }
 

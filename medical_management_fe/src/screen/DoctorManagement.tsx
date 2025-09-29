@@ -37,7 +37,6 @@ import {
   Trash2,
   Users,
   FileText,
-  BarChart3,
   AlertTriangle,
   Search,
   Plus,
@@ -64,7 +63,7 @@ const DoctorManagement: React.FC = () => {
     return s.length >= 10 ? s.slice(0, 10) : s;
   };
   const [activeTab, setActiveTab] = useState<
-    "patients" | "prescriptions" | "overview" | "alerts" | "doctors"
+    "patients" | "prescriptions" | "alerts" | "doctors"
   >("patients");
   const role = useMemo(() => {
     try {
@@ -208,10 +207,7 @@ const DoctorManagement: React.FC = () => {
         : patientApi.getAllPatients(),
   });
 
-  const { data: overviewData } = useQuery({
-    queryKey: ["doctor-overview"],
-    queryFn: () => DoctorApi.overview(),
-  });
+  
 
   // Doctor queries
   const doctorsQueryKey = useMemo(
@@ -244,8 +240,7 @@ const DoctorManagement: React.FC = () => {
       // Refresh patient table
       queryClient.invalidateQueries({ queryKey: ["patient-search"] });
       queryClient.invalidateQueries({ queryKey: ["patient-get-all"] });
-      // Refresh overview stats
-      queryClient.invalidateQueries({ queryKey: ["doctor-overview"] });
+      
       setOpenCreatePatient(false);
       setCreateForm({
         fullName: "",
@@ -478,8 +473,7 @@ const DoctorManagement: React.FC = () => {
         // Refresh patient table
         queryClient.invalidateQueries({ queryKey: ["patient-search"] });
         queryClient.invalidateQueries({ queryKey: ["patient-get-all"] });
-        // Refresh overview stats
-        queryClient.invalidateQueries({ queryKey: ["doctor-overview"] });
+        
         toast.success("Đã xóa bệnh nhân");
       })
       .catch((e) =>
@@ -878,15 +872,7 @@ const DoctorManagement: React.FC = () => {
             onValueChange={(v) => setActiveTab(v as any)}
             className="space-y-6"
           >
-            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-background via-muted/30 to-background p-2 rounded-2xl border border-border/20 shadow-lg backdrop-blur-sm">
-              <TabsTrigger
-                value="overview"
-                className="group flex items-center gap-2 relative overflow-hidden rounded-xl px-4 py-3 transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:scale-105 hover:bg-primary/10 hover:scale-102"
-              >
-                <BarChart3 className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-                <span className="hidden sm:inline font-medium">Tổng quan</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-background via-muted/30 to-background p-2 rounded-2xl border border-border/20 shadow-lg backdrop-blur-sm">
 
               <TabsTrigger
                 value="patients"
@@ -1796,34 +1782,7 @@ const DoctorManagement: React.FC = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="overview">
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="bg-card rounded-xl shadow p-6">
-                  <div className="text-sm text-muted-foreground">
-                    Tổng bệnh nhân
-                  </div>
-                  <div className="text-3xl font-bold mt-2">
-                    {overviewData?.totalPatients ?? "-"}
-                  </div>
-                </div>
-                <div className="bg-card rounded-xl shadow p-6">
-                  <div className="text-sm text-muted-foreground">
-                    Đơn thuốc đã kê
-                  </div>
-                  <div className="text-3xl font-bold mt-2">
-                    {overviewData?.totalPrescriptions ?? "-"}
-                  </div>
-                </div>
-                <div className="bg-card rounded-xl shadow p-6">
-                  <div className="text-sm text-muted-foreground">
-                    Cảnh báo chưa xử lý
-                  </div>
-                  <div className="text-3xl font-bold mt-2">
-                    {overviewData?.pendingAlerts ?? "-"}
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
+            
 
             <TabsContent value="doctors">
               <div className="bg-gradient-to-br from-card via-card to-card/95 rounded-2xl shadow-xl border border-border/20 p-8 backdrop-blur-sm">
@@ -2290,7 +2249,7 @@ function ResolveAlertButton({ id }: { id: string }) {
     mutationFn: () => DoctorApi.resolveAlert(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor-alerts"] });
-      queryClient.invalidateQueries({ queryKey: ["doctor-overview"] });
+      
     },
   });
   return (

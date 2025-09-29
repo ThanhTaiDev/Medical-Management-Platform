@@ -15,14 +15,17 @@ export interface GetUsersParams {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   role?: "PATIENT" | "DOCTOR" | "ADMIN";
+  search?: string;
 }
 
 export const userApi = {
   async getUsers(params: GetUsersParams = {}): Promise<UserListResponse> {
-    const { page = 1, limit = 10, sortBy, sortOrder, role } = params;
+    const { page = 1, limit = 10, sortBy, sortOrder, role, search } = params;
+    console.log('🚀 API call params:', { page, limit, sortBy, sortOrder, role, search });
     const res = await axiosInstance.get("/admin/users", {
-      params: { page, limit, sortBy, sortOrder, role },
+      params: { page, limit, sortBy, sortOrder, role, search },
     });
+    console.log('📡 API response:', res.data);
     const payload = res.data?.data ?? res.data;
     // Backend returns { items, total, page, limit }
     const items = payload.items as User[];

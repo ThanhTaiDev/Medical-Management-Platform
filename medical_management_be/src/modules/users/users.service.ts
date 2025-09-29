@@ -229,11 +229,22 @@ export class UsersService {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    search?: string;
   }) {
     const where: any = { deletedAt: null };
     if (params.role) {
       where.role = params.role;
     }
+    
+    // Add search functionality
+    if (params.search && params.search.trim()) {
+      const searchTerm = params.search.trim();
+      where.OR = [
+        { fullName: { contains: searchTerm, mode: 'insensitive' } },
+        { phoneNumber: { contains: searchTerm } }
+      ];
+    }
+    
     const page = params.page && params.page > 0 ? params.page : 1;
     const limit = params.limit && params.limit > 0 ? params.limit : 20;
     const orderByField = params.sortBy || 'createdAt';
