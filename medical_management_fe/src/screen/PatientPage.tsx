@@ -257,6 +257,26 @@ export default function PatientPage() {
     return reminder.time === selectedTimeFilter;
   }) || [];
 
+  // Sort reminders: PENDING first, then by time
+  const sortedReminders = filteredReminders.sort((a: any, b: any) => {
+    // First priority: PENDING status goes to top
+    if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+    if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+    
+    // Second priority: Sort by time slot order
+    const timeOrder = ['Sáng', 'Trưa', 'Chiều', 'Tối', 'Đêm'];
+    const aTimeIndex = timeOrder.indexOf(a.time);
+    const bTimeIndex = timeOrder.indexOf(b.time);
+    
+    // If both times are in the order array, sort by index
+    if (aTimeIndex !== -1 && bTimeIndex !== -1) {
+      return aTimeIndex - bTimeIndex;
+    }
+    
+    // If times are not in order array (like HH:mm format), sort alphabetically
+    return a.time.localeCompare(b.time);
+  });
+
   const { data: alerts, isLoading: loadingAlerts } = useQuery({
     queryKey: ["patient-alerts"],
     queryFn: patientApi.getAlerts,
@@ -1172,11 +1192,11 @@ export default function PatientPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">Nhắc nhở uống thuốc</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Lịch trình uống thuốc theo ngày
+                    Lịch trình uống thuốc theo ngày • Chưa uống hiển thị trước
                   </p>
                 </div>
                 <Badge variant="outline" className="text-xs">
-                  {filteredReminders.length} nhắc nhở
+                  {sortedReminders.length} nhắc nhở
                   {selectedTimeFilter !== 'all' && (
                     <span className="ml-1 text-muted-foreground">
                       ({Array.isArray(reminders) ? reminders.length : 0} tổng)
@@ -1302,9 +1322,9 @@ export default function PatientPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     <span className="ml-3 text-muted-foreground">Đang tải nhắc nhở...</span>
                   </div>
-                ) : filteredReminders.length > 0 ? (
+                ) : sortedReminders.length > 0 ? (
                   <div className="space-y-4">
-                    {filteredReminders.map((r: any, idx: number) => (
+                    {sortedReminders.map((r: any, idx: number) => (
                       <Card key={idx} className="border-border/20 hover:shadow-md transition-all duration-200">
                         <CardContent className="p-4">
                           <div className="flex items-start gap-4">
