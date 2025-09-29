@@ -95,7 +95,7 @@ const DashboardHomepage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-5 grid-rows-6 gap-4">
+      <div className="grid grid-cols-5 grid-rows-10 gap-4">
         {/* 1) Biểu đồ + KPIs */}
         <div className="col-span-3 row-span-3 p-4 rounded-lg border bg-white shadow-sm">
           <div className="flex items-center justify-between mb-3">
@@ -131,15 +131,15 @@ const DashboardHomepage: React.FC = () => {
         </div>
 
         {/* 3) Danh sách thuốc đã kê */}
-        <div className="col-span-3 row-span-3 col-start-1 row-start-4 p-4 rounded-lg border bg-white shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+        <div className="col-span-3 row-span-3 col-start-1 row-start-4 p-4 rounded-lg border bg-white shadow-sm flex flex-col min-h-0">
+          <div className="flex items-center justify-between mb-3 shrink-0">
             <div className="flex items-center gap-2">
               <span className="inline-block h-5 w-1.5 rounded bg-amber-500"></span>
               <h2 className="font-semibold">Thuốc đã kê gần đây</h2>
             </div>
             <div className="text-xs text-muted-foreground">Top 10</div>
           </div>
-          <div className="space-y-2 max-h-64 overflow-auto pr-1">
+          <div className="space-y-2 overflow-auto pr-1 flex-1 min-h-0 max-h-96">
             {loading && items.length === 0 ? (
               <div className="text-sm text-muted-foreground">Đang tải...</div>
             ) : items.length === 0 ? (
@@ -164,15 +164,15 @@ const DashboardHomepage: React.FC = () => {
         </div>
 
         {/* 4) Danh sách bệnh nhân + tuân thủ */}
-        <div className="col-span-2 row-span-6 col-start-4 row-start-1 p-4 rounded-lg border bg-white shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+        <div className="col-span-2 row-span-6 col-start-4 row-start-1 p-4 rounded-lg border bg-white shadow-sm flex flex-col min-h-0 h-full">
+          <div className="flex items-center justify-between mb-3 shrink-0">
             <div className="flex items-center gap-2">
               <span className="inline-block h-5 w-1.5 rounded bg-emerald-500"></span>
               <h2 className="font-semibold">Bệnh nhân đang điều trị</h2>
             </div>
             <div className="text-xs text-muted-foreground">Top 10</div>
           </div>
-          <div className="space-y-2 max-h-[680px] overflow-auto pr-1">
+          <div className="space-y-2 overflow-auto pr-1 flex-1 min-h-0">
             {loading && patients.length === 0 ? (
               <div className="text-sm text-muted-foreground">Đang tải...</div>
             ) : patients.length === 0 ? (
