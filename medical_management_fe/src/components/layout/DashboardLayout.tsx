@@ -17,9 +17,7 @@ import {
   SidebarFooter,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Home, Users, Bell, ChevronDown, HelpCircle, LogOut, Loader2, Stethoscope, UserRound, Pill, Clock, AlarmClock, AlertTriangle, Activity } from "lucide-react";
 
@@ -51,7 +49,13 @@ const doctorOnlyMenuItems = [
     title: "Bệnh nhân",
     url: "/dashboard/doctor-patients",
     icon: Users,
-  }
+  },
+  {
+    title: "Cảnh báo",
+    url: "/dashboard/doctor-prescriptions",
+    icon: AlertTriangle,
+  },
+
 ];
 
 const patientMenuItems = [
@@ -72,8 +76,7 @@ interface AppSidebarProps {
 const MenuItem = React.memo<{
   item: typeof adminMenuItems[0];
   isActive: boolean;
-  index: number;
-}>(({ item, isActive, index }) => {
+}>(({ item, isActive }) => {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -159,12 +162,11 @@ const AppSidebar: React.FC<AppSidebarProps> = React.memo(({ userData }) => {
         <SidebarGroup className="space-y-3">
           <SidebarGroupContent>
             <SidebarMenu className="space-y-2">
-              {menuItems.map((item, index) => (
+              {menuItems.map((item) => (
                 <MenuItem
                   key={item.title}
                   item={item}
                   isActive={activePath === item.url}
-                  index={index}
                 />
               ))}
             </SidebarMenu>

@@ -153,6 +153,30 @@ export class DoctorController {
     return this.doctorService.resolveAlert(id);
   }
 
+  // Adherence - Patients being monitored with missed doses
+  @Get('adherence/missed')
+  async patientsWithMissedDoses(
+    @UserInfo() user: IUserFromToken,
+    @Query('sinceDays') sinceDays?: string
+  ) {
+    this.ensureDoctor(user);
+    return this.doctorService.listPatientsWithRecentMissedDoses(
+      user.id,
+      sinceDays ? parseInt(sinceDays) : 7
+    );
+  }
+
+  // Doctor sends adherence warning to a patient
+  @Post('patients/:id/warn')
+  async warnPatient(
+    @Param('id') patientId: string,
+    @Body() body: { message?: string },
+    @UserInfo() user: IUserFromToken
+  ) {
+    this.ensureDoctor(user);
+    return this.doctorService.warnPatientAdherence(user.id, patientId, body?.message);
+  }
+
   // CRUD Operations for Doctor Management
   @Post('doctor')
   async createDoctor(

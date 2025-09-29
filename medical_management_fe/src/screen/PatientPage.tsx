@@ -27,6 +27,8 @@ import {
   translateStatus
 } from "@/utils/vietnameseEnums";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 // Types for better type safety
 interface Prescription {
@@ -132,6 +134,29 @@ export default function PatientPage() {
     console.log('Dialog state changed:', timeValidationDialog);
   }, [timeValidationDialog]);
 
+  const [firstWarningDialog, setFirstWarningDialog] = useState<{ open: boolean; doctorName?: string; message?: string }>(
+    { open: false }
+  );
+
+  const { data: ovAlerts, isLoading: loadingOvAlerts } = useQuery({
+    queryKey: ["patient-ov-alerts"],
+    queryFn: patientApi.getAlerts,
+    enabled: role === "PATIENT" && activeTab === "overview",
+  });
+
+  useEffect(() => {
+    if (role !== "PATIENT") return;
+    // Find first unresolved LOW_ADHERENCE alert
+    const alertsArr = Array.isArray(ovAlerts) ? ovAlerts : [];
+    const warn = alertsArr.find((a: any) => a.type === 'LOW_ADHERENCE' && !a.resolved);
+    if (warn) {
+      // Try to extract doctor name from message pattern "Bác sĩ <name> ..."
+      const msg: string = warn.message || '';
+      const match = msg.match(/Bác sĩ\s+([^\s].*?)\s+nhắc/);
+      const doctorName = match?.[1];
+      setFirstWarningDialog({ open: true, doctorName, message: warn.message });
+    }
+  }, [role, ovAlerts]);
 
   // Utility functions
   const formatDate = (dateString: string): string => {
@@ -204,12 +229,6 @@ export default function PatientPage() {
       }
       return a.time.localeCompare(b.time);
     }) || [];
-
-  const { data: ovAlerts, isLoading: loadingOvAlerts } = useQuery({
-    queryKey: ["patient-ov-alerts"],
-    queryFn: patientApi.getAlerts,
-    enabled: role === "PATIENT" && activeTab === "overview",
-  });
 
   const { data: ovAdherence, isLoading: loadingOvAdh } = useQuery({
     queryKey: ["patient-ov-adherence"],
@@ -1798,6 +1817,38 @@ export default function PatientPage() {
             </div>
           )}
         </div>
+
+        {/* First warning dialog for PATIENT */}
+        <Dialog open={firstWarningDialog.open} onOpenChange={(open) => setFirstWarningDialog(prev => ({ ...prev, open }))}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                Nhắc nhở từ bác sĩ
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              {firstWarningDialog.doctorName && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Bác sĩ: </span>
+                  <span className="font-medium">{firstWarningDialog.doctorName}</span>
+                </div>
+              )}
+              <p className="text-sm text-foreground">
+                {firstWarningDialog.message || 'Bạn nhận được nhắc nhở tuân thủ uống thuốc đều đặn và đúng giờ.'}
+              </p>
+              <Separator />
+              <p className="text-xs text-muted-foreground">
+                Vui lòng xem lại lịch uống thuốc trong mục Nhắc nhở và tuân thủ theo chỉ định.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setFirstWarningDialog(prev => ({ ...prev, open: false }))} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Tôi đã hiểu
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     );
   }
@@ -1835,6 +1886,7 @@ export default function PatientPage() {
         timeSlot={formatTimeSlot(timeValidationDialog.reminder?.time || '')}
         currentTimeSlot={getCurrentTimeInVietnamese()}
       />
+
     </main>
   );
 }

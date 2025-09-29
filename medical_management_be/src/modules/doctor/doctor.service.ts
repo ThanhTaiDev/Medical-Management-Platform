@@ -11,7 +11,8 @@ import {
   UserRole,
   Gender,
   MajorDoctor,
-  UserStatus
+  UserStatus,
+  AlertType
 } from '@prisma/client';
 
 @Injectable()
@@ -462,6 +463,89 @@ export class DoctorService {
       where: { id },
       data: { resolved: true }
     });
+  }
+
+  // ==================== Adherence - Missed dose monitoring and doctor warnings ====================
+  async listPatientsWithRecentMissedDoses(doctorId: string, sinceDays: number = 7) {
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - sinceDays);
+
+    // Find all prescriptions of this doctor and collect related patientIds
+    const prescriptions = await this.databaseService.client.prescription.findMany({
+      where: { doctorId },
+      select: { id: true, patientId: true }
+    });
+
+    if (prescriptions.length === 0) {
+      return { items: [], total: 0, since: sinceDate.toISOString() };
+    }
+
+    const patientIds = Array.from(new Set(prescriptions.map(p => p.patientId)));
+
+    // Group MISSED adherence logs by patient within timeframe for prescriptions of this doctor
+    const missedByPatient = await this.databaseService.client.adherenceLog.groupBy({
+      by: ['patientId'],
+      where: {
+        patientId: { in: patientIds },
+        status: AdherenceStatus.MISSED,
+        takenAt: { gte: sinceDate },
+        prescriptionId: { in: prescriptions.map(p => p.id) }
+      },
+      _count: { _all: true }
+    });
+
+    if (missedByPatient.length === 0) {
+      return { items: [], total: 0, since: sinceDate.toISOString() };
+    }
+
+    const mapCounts: Record<string, number> = {};
+    for (const row of missedByPatient) {
+      mapCounts[row.patientId as string] = (row as any)._count._all as number;
+    }
+
+    // Fetch patient basic info for those who have missed logs
+    const patients = await this.databaseService.client.user.findMany({
+      where: { id: { in: Object.keys(mapCounts) } },
+      select: { id: true, fullName: true, phoneNumber: true }
+    });
+
+    const items = patients
+      .map(p => ({
+        patientId: p.id,
+        fullName: p.fullName,
+        phoneNumber: p.phoneNumber,
+        missedCount: mapCounts[p.id] || 0
+      }))
+      .sort((a, b) => b.missedCount - a.missedCount);
+
+    return { items, total: items.length, since: sinceDate.toISOString() };
+  }
+
+  async warnPatientAdherence(doctorId: string, patientId: string, message?: string) {
+    // Ensure patient belongs to this doctor (assigned via createdBy) and exists
+    const patient = await this.databaseService.client.user.findUnique({
+      where: { id: patientId }
+    });
+    if (!patient || patient.role !== UserRole.PATIENT || patient.deletedAt) {
+      throw new NotFoundException('Patient not found');
+    }
+    if (patient.createdBy && patient.createdBy !== doctorId) {
+      throw new UnprocessableEntityException('Bệnh nhân không thuộc danh sách theo dõi của bác sĩ');
+    }
+    const doctor = await this.databaseService.client.user.findUnique({ where: { id: doctorId } });
+
+    const alert = await this.databaseService.client.alert.create({
+      data: {
+        patientId,
+        doctorId,
+        type: AlertType.LOW_ADHERENCE,
+        message:
+          message || `Bác sĩ ${doctor?.fullName || ''} nhắc nhở bạn uống thuốc đều đặn và đúng giờ theo chỉ định`,
+        resolved: false
+      }
+    });
+
+    return { message: 'Đã gửi cảnh báo tuân thủ cho bệnh nhân', alertId: alert.id };
   }
 
   // CRUD Operations for Doctor Management

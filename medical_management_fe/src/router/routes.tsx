@@ -8,6 +8,7 @@ import DoctorManagement from "@/screen/DoctorManagement";
 import UserManagement from "@/screen/UserManagement";
 import HealthOverview from "@/screen/HealthOverview";
 import DoctorPatientsPage from "@/screen/DoctorPatientsPage";
+import DoctorMissisPillPage from "@/screen/DoctorMissisPillPage";
 
 // Kiểm tra nếu người dùng đã đăng nhập
 const isAuthenticated = () => {
@@ -73,6 +74,10 @@ export const routes: RouteObject[] = [
       {
         path: "doctor-patients",
         element: <DoctorPatientsPage />,
+      },
+      {
+        path: "doctor-prescriptions",
+        element: <DoctorMissisPillPage />,
       },
       {
         path: "health-overview",

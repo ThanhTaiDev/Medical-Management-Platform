@@ -157,6 +157,38 @@ File `doctor.controller.ts` cung cấp các API endpoints cho chức năng quả
   - `DoctorApi.resolveAlert()`: Gọi API từ frontend
 - **Trạng thái**: ✅ Đang được sử dụng tích cực
 
+#### `GET /doctor/adherence/missed`
+- **Mục đích**: Liệt kê các bệnh nhân do bác sĩ đang theo dõi có liều thuốc bị bỏ gần đây
+- **Quyền truy cập**: Chỉ DOCTOR và ADMIN
+- **Tham số**:
+  - `sinceDays` (number, optional, mặc định 7): khoảng thời gian tính từ hiện tại để thống kê số lần bỏ thuốc
+- **Response**:
+  ```json
+  {
+    "items": [
+      { "patientId": "...", "fullName": "...", "phoneNumber": "...", "missedCount": 3 }
+    ],
+    "total": 1,
+    "since": "2025-09-22T00:00:00.000Z"
+  }
+  ```
+- **Ghi chú**: Danh sách bệnh nhân được xác định theo tiêu chí `createdBy` = ID bác sĩ.
+- **Trạng thái**: ✅ Mới thêm
+
+#### `POST /doctor/patients/:id/warn`
+- **Mục đích**: Bác sĩ gửi cảnh báo tuân thủ cho một bệnh nhân cụ thể khi phát hiện bỏ thuốc nhiều lần
+- **Quyền truy cập**: Chỉ DOCTOR và ADMIN
+- **Body**:
+  ```typescript
+  { message?: string }
+  ```
+- **Hành vi**: Tạo alert với `type = LOW_ADHERENCE` để nhắc nhở bệnh nhân tuân thủ đúng chỉ định
+- **Response**:
+  ```json
+  { "message": "Đã gửi cảnh báo tuân thủ cho bệnh nhân", "alertId": "..." }
+  ```
+- **Trạng thái**: ✅ Mới thêm
+
 ### 6. CRUD Operations cho Quản Lý Bác Sĩ
 
 #### `POST /doctor/doctor`

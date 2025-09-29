@@ -163,4 +163,22 @@ export const DoctorApi = {
     const res = await axiosInstance.put(`/doctor/alerts/${id}/resolve`, {});
     return res.data;
   },
+
+  // Adherence - Missed doses aggregation and warning action
+  listPatientsMissed: async (sinceDays?: number) => {
+    const res = await axiosInstance.get(
+      "/doctor/adherence/missed",
+      { params: { sinceDays } }
+    );
+    return (res.data?.data ?? res.data) as {
+      items: Array<{ patientId: string; fullName: string; phoneNumber: string; missedCount: number }>
+      total: number;
+      since: string;
+    };
+  },
+
+  warnPatient: async (patientId: string, message?: string) => {
+    const res = await axiosInstance.post(`/doctor/patients/${patientId}/warn`, { message });
+    return res.data as { message: string; alertId: string };
+  },
 };
