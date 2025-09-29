@@ -515,7 +515,7 @@ export default function PatientPage() {
 
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("prescriptions")}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -526,14 +526,18 @@ export default function PatientPage() {
                           {(overview as OverviewData)?.activePrescriptions ?? 0}
                         </p>
                       </div>
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                         <Pill className="h-4 w-4" />
                       </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Xem chi tiết</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("alerts")}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -544,14 +548,18 @@ export default function PatientPage() {
                           {(overview as OverviewData)?.unresolvedAlerts ?? 0}
                         </p>
                       </div>
-                      <div className="h-8 w-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
                         <AlertTriangle className="h-4 w-4" />
                       </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Xem chi tiết</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-amber-700 transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("adherence")}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -562,14 +570,18 @@ export default function PatientPage() {
                           {(overview as OverviewData)?.takenLogs ?? 0}
                         </p>
                       </div>
-                      <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
                         <CheckCircle className="h-4 w-4" />
                       </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Xem chi tiết</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("adherence")}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -580,9 +592,13 @@ export default function PatientPage() {
                           {(overview as OverviewData)?.missedLogs ?? 0}
                         </p>
                       </div>
-                      <div className="h-8 w-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center group-hover:bg-red-200 transition-colors">
                         <XCircle className="h-4 w-4" />
                       </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Xem chi tiết</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-red-600 transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
@@ -591,18 +607,21 @@ export default function PatientPage() {
 
               {/* Active prescriptions preview */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("prescriptions")}>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center justify-between text-base">
                       <span className="flex items-center gap-2">
                         <Pill className="h-4 w-4 text-primary" />
                         Đơn thuốc đang hoạt động
                       </span>
-                      {!loadingOvRx && prescriptionsList.length > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {prescriptionsList.length}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!loadingOvRx && prescriptionsList.length > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {prescriptionsList.length}
+                          </Badge>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -655,18 +674,21 @@ export default function PatientPage() {
                 </Card>
 
                 {/* Upcoming reminders */}
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("reminders")}>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center justify-between text-base">
                       <span className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-blue-600" />
                         Nhắc nhở hôm nay
                       </span>
-                      {!loadingOvReminders && upcomingReminders.length > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {upcomingReminders.length}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!loadingOvReminders && upcomingReminders.length > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {upcomingReminders.length}
+                          </Badge>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-blue-600 transition-colors" />
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -748,18 +770,21 @@ export default function PatientPage() {
 
               {/* Alerts and recent adherence */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("alerts")}>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center justify-between text-base">
                       <span className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-amber-600" />
                         Cảnh báo
                       </span>
-                      {!loadingOvAlerts && Array.isArray(ovAlerts) && (
-                        <Badge variant="secondary" className="text-xs">
-                          {ovAlerts.filter((a: Alert) => !a.resolved).length} chưa xử lý
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!loadingOvAlerts && Array.isArray(ovAlerts) && (
+                          <Badge variant="secondary" className="text-xs">
+                            {ovAlerts.filter((a: Alert) => !a.resolved).length} chưa xử lý
+                          </Badge>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-amber-600 transition-colors" />
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -812,13 +837,14 @@ export default function PatientPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border/20">
+                <Card className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={() => setActiveTab("adherence")}>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center justify-between text-base">
                       <span className="flex items-center gap-2">
                         <Activity className="h-4 w-4 text-emerald-600" />
                         Nhật ký tuân thủ gần đây
                       </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 transition-colors" />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
