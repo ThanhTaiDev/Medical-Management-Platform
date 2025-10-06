@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException
+} from '@nestjs/common';
 import { DatabaseService } from '@/core/database/database.service';
 import { PrescriptionStatus, AdherenceStatus } from '@prisma/client';
 
@@ -89,17 +93,19 @@ export class PrescriptionsService {
     }
 
     // Validate medications exist
-    const medicationIds = data.items.map(item => item.medicationId);
+    const medicationIds = data.items.map((item) => item.medicationId);
     const medications = await this.databaseService.client.medication.findMany({
-      where: { 
+      where: {
         id: { in: medicationIds },
-        isActive: true 
+        isActive: true
       },
       select: { id: true, name: true }
     });
 
     if (medications.length !== medicationIds.length) {
-      throw new BadRequestException('Một số thuốc không tồn tại hoặc đã bị vô hiệu hóa');
+      throw new BadRequestException(
+        'Một số thuốc không tồn tại hoặc đã bị vô hiệu hóa'
+      );
     }
 
     // Create prescription with items
@@ -111,7 +117,7 @@ export class PrescriptionsService {
         endDate: data.endDate,
         notes: data.notes,
         items: {
-          create: data.items.map(item => ({
+          create: data.items.map((item) => ({
             medicationId: item.medicationId,
             dosage: item.dosage,
             frequencyPerDay: item.frequencyPerDay,
@@ -159,15 +165,19 @@ export class PrescriptionsService {
     return prescription;
   }
 
-  async updatePrescription(prescriptionId: string, data: UpdatePrescriptionDto) {
+  async updatePrescription(
+    prescriptionId: string,
+    data: UpdatePrescriptionDto
+  ) {
     console.log('=== UPDATE PRESCRIPTION DEBUG ===');
     console.log('Prescription ID:', prescriptionId);
     console.log('Update data:', data);
 
-    const existingPrescription = await this.databaseService.client.prescription.findUnique({
-      where: { id: prescriptionId },
-      include: { items: true }
-    });
+    const existingPrescription =
+      await this.databaseService.client.prescription.findUnique({
+        where: { id: prescriptionId },
+        include: { items: true }
+      });
 
     if (!existingPrescription) {
       throw new NotFoundException('Đơn thuốc không tồn tại');
@@ -175,17 +185,21 @@ export class PrescriptionsService {
 
     // If updating items, validate medications
     if (data.items) {
-      const medicationIds = data.items.map(item => item.medicationId);
-      const medications = await this.databaseService.client.medication.findMany({
-        where: { 
-          id: { in: medicationIds },
-          isActive: true 
-        },
-        select: { id: true }
-      });
+      const medicationIds = data.items.map((item) => item.medicationId);
+      const medications = await this.databaseService.client.medication.findMany(
+        {
+          where: {
+            id: { in: medicationIds },
+            isActive: true
+          },
+          select: { id: true }
+        }
+      );
 
       if (medications.length !== medicationIds.length) {
-        throw new BadRequestException('Một số thuốc không tồn tại hoặc đã bị vô hiệu hóa');
+        throw new BadRequestException(
+          'Một số thuốc không tồn tại hoặc đã bị vô hiệu hóa'
+        );
       }
     }
 
@@ -206,7 +220,7 @@ export class PrescriptionsService {
 
       // Create new items
       updateData.items = {
-        create: data.items.map(item => ({
+        create: data.items.map((item) => ({
           medicationId: item.medicationId,
           dosage: item.dosage,
           frequencyPerDay: item.frequencyPerDay,
@@ -218,39 +232,40 @@ export class PrescriptionsService {
       };
     }
 
-    const updatedPrescription = await this.databaseService.client.prescription.update({
-      where: { id: prescriptionId },
-      data: updateData,
-      include: {
-        patient: {
-          select: {
-            id: true,
-            fullName: true,
-            phoneNumber: true
-          }
-        },
-        doctor: {
-          select: {
-            id: true,
-            fullName: true,
-            phoneNumber: true
-          }
-        },
-        items: {
-          include: {
-            medication: {
-              select: {
-                id: true,
-                name: true,
-                strength: true,
-                form: true,
-                unit: true
+    const updatedPrescription =
+      await this.databaseService.client.prescription.update({
+        where: { id: prescriptionId },
+        data: updateData,
+        include: {
+          patient: {
+            select: {
+              id: true,
+              fullName: true,
+              phoneNumber: true
+            }
+          },
+          doctor: {
+            select: {
+              id: true,
+              fullName: true,
+              phoneNumber: true
+            }
+          },
+          items: {
+            include: {
+              medication: {
+                select: {
+                  id: true,
+                  name: true,
+                  strength: true,
+                  form: true,
+                  unit: true
+                }
               }
             }
           }
         }
-      }
-    });
+      });
 
     console.log('Updated prescription:', updatedPrescription.id);
     console.log('=== END UPDATE PRESCRIPTION DEBUG ===');
@@ -259,51 +274,52 @@ export class PrescriptionsService {
   }
 
   async getPrescriptionById(prescriptionId: string) {
-    const prescription = await this.databaseService.client.prescription.findUnique({
-      where: { id: prescriptionId },
-      include: {
-        patient: {
-          select: {
-            id: true,
-            fullName: true,
-            phoneNumber: true,
-            profile: {
-              select: {
-                gender: true,
-                birthDate: true,
-                address: true
+    const prescription =
+      await this.databaseService.client.prescription.findUnique({
+        where: { id: prescriptionId },
+        include: {
+          patient: {
+            select: {
+              id: true,
+              fullName: true,
+              phoneNumber: true,
+              profile: {
+                select: {
+                  gender: true,
+                  birthDate: true,
+                  address: true
+                }
               }
             }
-          }
-        },
-        doctor: {
-          select: {
-            id: true,
-            fullName: true,
-            phoneNumber: true,
-            majorDoctor: true
-          }
-        },
-        items: {
-          include: {
-            medication: {
-              select: {
-                id: true,
-                name: true,
-                strength: true,
-                form: true,
-                unit: true,
-                description: true
+          },
+          doctor: {
+            select: {
+              id: true,
+              fullName: true,
+              phoneNumber: true,
+              majorDoctor: true
+            }
+          },
+          items: {
+            include: {
+              medication: {
+                select: {
+                  id: true,
+                  name: true,
+                  strength: true,
+                  form: true,
+                  unit: true,
+                  description: true
+                }
               }
             }
+          },
+          logs: {
+            orderBy: { takenAt: 'desc' },
+            take: 10
           }
-        },
-        logs: {
-          orderBy: { takenAt: 'desc' },
-          take: 10
         }
-      }
-    });
+      });
 
     if (!prescription) {
       throw new NotFoundException('Đơn thuốc không tồn tại');
@@ -312,23 +328,26 @@ export class PrescriptionsService {
     return prescription;
   }
 
-  async getPrescriptionsByPatient(patientId: string, params?: {
-    page?: number;
-    limit?: number;
-    status?: PrescriptionStatus;
-  }) {
+  async getPrescriptionsByPatient(
+    patientId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: PrescriptionStatus;
+    }
+  ) {
     console.log('=== GET PRESCRIPTIONS BY PATIENT DEBUG ===');
     console.log('Patient ID:', patientId);
     console.log('Params:', params);
-    
+
     const page = params?.page && params.page > 0 ? params.page : 1;
     const limit = params?.limit && params.limit > 0 ? params.limit : 20;
-    
+
     const where: any = { patientId };
     if (params?.status) {
       where.status = params.status;
     }
-    
+
     console.log('Where clause:', where);
 
     const [items, total] = await Promise.all([
@@ -365,20 +384,30 @@ export class PrescriptionsService {
     console.log('Query results:');
     console.log('Items count:', items.length);
     console.log('Total count:', total);
-    console.log('Items:', items.map(item => ({ id: item.id, patientId: item.patientId, status: item.status })));
+    console.log(
+      'Items:',
+      items.map((item) => ({
+        id: item.id,
+        patientId: item.patientId,
+        status: item.status
+      }))
+    );
 
     return { items, total, page, limit };
   }
 
-  async getPrescriptionsByDoctor(doctorId: string, params?: {
-    page?: number;
-    limit?: number;
-    status?: PrescriptionStatus;
-    patientId?: string;
-  }) {
+  async getPrescriptionsByDoctor(
+    doctorId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: PrescriptionStatus;
+      patientId?: string;
+    }
+  ) {
     const page = params?.page && params.page > 0 ? params.page : 1;
     const limit = params?.limit && params.limit > 0 ? params.limit : 20;
-    
+
     const where: any = { doctorId };
     if (params?.status) {
       where.status = params.status;
@@ -436,7 +465,7 @@ export class PrescriptionsService {
   }) {
     const page = params?.page && params.page > 0 ? params.page : 1;
     const limit = params?.limit && params.limit > 0 ? params.limit : 20;
-    
+
     const where: any = {};
     if (params?.status) {
       where.status = params.status;
@@ -496,25 +525,29 @@ export class PrescriptionsService {
     console.log('Adherence data:', data);
 
     // Validate prescription exists
-    const prescription = await this.databaseService.client.prescription.findUnique({
-      where: { id: data.prescriptionId },
-      select: { id: true, patientId: true }
-    });
+    const prescription =
+      await this.databaseService.client.prescription.findUnique({
+        where: { id: data.prescriptionId },
+        select: { id: true, patientId: true }
+      });
 
     if (!prescription) {
       throw new NotFoundException('Đơn thuốc không tồn tại');
     }
 
     if (prescription.patientId !== data.patientId) {
-      throw new BadRequestException('Bệnh nhân không có quyền ghi nhật ký cho đơn thuốc này');
+      throw new BadRequestException(
+        'Bệnh nhân không có quyền ghi nhật ký cho đơn thuốc này'
+      );
     }
 
     // Validate prescription item if provided
     if (data.prescriptionItemId) {
-      const item = await this.databaseService.client.prescriptionItem.findUnique({
-        where: { id: data.prescriptionItemId },
-        select: { id: true, prescriptionId: true, frequencyPerDay: true }
-      });
+      const item =
+        await this.databaseService.client.prescriptionItem.findUnique({
+          where: { id: data.prescriptionItemId },
+          select: { id: true, prescriptionId: true, frequencyPerDay: true }
+        });
 
       if (!item || item.prescriptionId !== data.prescriptionId) {
         throw new BadRequestException('Dòng đơn thuốc không hợp lệ');
@@ -522,17 +555,20 @@ export class PrescriptionsService {
 
       // Generate unique dose ID for checking duplicates
       const today = new Date().toISOString().slice(0, 10);
-      const uniqueDoseId = data.notes || `${data.prescriptionItemId}-${today}-${new Date().getHours()}`;
+      const uniqueDoseId =
+        data.notes ||
+        `${data.prescriptionItemId}-${today}-${new Date().getHours()}`;
 
       // Check if this specific dose has already been logged
-      const existingLog = await this.databaseService.client.adherenceLog.findFirst({
-        where: {
-          prescriptionItemId: data.prescriptionItemId,
-          patientId: data.patientId,
-          notes: uniqueDoseId,
-          status: data.status
-        }
-      });
+      const existingLog =
+        await this.databaseService.client.adherenceLog.findFirst({
+          where: {
+            prescriptionItemId: data.prescriptionItemId,
+            patientId: data.patientId,
+            notes: uniqueDoseId,
+            status: data.status
+          }
+        });
 
       if (existingLog) {
         throw new BadRequestException('Bạn đã xác nhận liều thuốc này rồi');
@@ -586,9 +622,10 @@ export class PrescriptionsService {
     // Create alert if status is MISSED
     if (data.status === 'MISSED') {
       try {
-        const medicationName = adherenceLog.prescriptionItem?.medication?.name || 'thuốc';
+        const medicationName =
+          adherenceLog.prescriptionItem?.medication?.name || 'thuốc';
         const message = `Bạn đã bỏ lỡ liều thuốc ${medicationName}. Vui lòng uống thuốc đúng giờ theo chỉ định của bác sĩ.`;
-        
+
         await this.databaseService.client.alert.create({
           data: {
             prescriptionId: data.prescriptionId,
@@ -598,7 +635,7 @@ export class PrescriptionsService {
             resolved: false
           }
         });
-        
+
         console.log('Created MISSED_DOSE alert for patient:', data.patientId);
       } catch (error) {
         console.error('Failed to create MISSED_DOSE alert:', error);
@@ -611,14 +648,17 @@ export class PrescriptionsService {
     return adherenceLog;
   }
 
-  async getAdherenceLogs(prescriptionId: string, params?: {
-    page?: number;
-    limit?: number;
-    patientId?: string;
-  }) {
+  async getAdherenceLogs(
+    prescriptionId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      patientId?: string;
+    }
+  ) {
     const page = params?.page && params.page > 0 ? params.page : 1;
     const limit = params?.limit && params.limit > 0 ? params.limit : 50;
-    
+
     const where: any = { prescriptionId };
     if (params?.patientId) {
       where.patientId = params.patientId;
@@ -662,9 +702,15 @@ export class PrescriptionsService {
       adherenceRate
     ] = await Promise.all([
       this.databaseService.client.prescription.count(),
-      this.databaseService.client.prescription.count({ where: { status: 'ACTIVE' } }),
-      this.databaseService.client.prescription.count({ where: { status: 'COMPLETED' } }),
-      this.databaseService.client.prescription.count({ where: { status: 'CANCELLED' } }),
+      this.databaseService.client.prescription.count({
+        where: { status: 'ACTIVE' }
+      }),
+      this.databaseService.client.prescription.count({
+        where: { status: 'COMPLETED' }
+      }),
+      this.databaseService.client.prescription.count({
+        where: { status: 'CANCELLED' }
+      }),
       this.databaseService.client.user.count({ where: { role: 'PATIENT' } }),
       this.calculateAdherenceRate()
     ]);
@@ -695,38 +741,36 @@ export class PrescriptionsService {
     const targetDate = date || new Date();
     const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(targetDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const activePrescriptions = await this.databaseService.client.prescription.findMany({
-      where: {
-        patientId,
-        status: 'ACTIVE',
-        startDate: { lte: endOfDay },
-        OR: [
-          { endDate: null },
-          { endDate: { gte: startOfDay } }
-        ]
-      },
-      include: {
-        items: {
-          include: {
-            medication: {
-              select: {
-                name: true,
-                strength: true,
-                form: true
+    const activePrescriptions =
+      await this.databaseService.client.prescription.findMany({
+        where: {
+          patientId,
+          status: 'ACTIVE',
+          startDate: { lte: endOfDay },
+          OR: [{ endDate: null }, { endDate: { gte: startOfDay } }]
+        },
+        include: {
+          items: {
+            include: {
+              medication: {
+                select: {
+                  name: true,
+                  strength: true,
+                  form: true
+                }
               }
             }
           }
         }
-      }
-    });
+      });
 
     // Generate schedule for the day
     const schedule = [];
-    
+
     for (const prescription of activePrescriptions) {
       for (const item of prescription.items) {
         for (const timeOfDay of item.timesOfDay) {
@@ -749,7 +793,9 @@ export class PrescriptionsService {
     }
 
     // Sort by time
-    schedule.sort((a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime());
+    schedule.sort(
+      (a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime()
+    );
 
     return schedule;
   }

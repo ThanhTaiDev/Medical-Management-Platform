@@ -29,20 +29,20 @@ export class UsersService {
 
   async createUser(user: RegisterDto, createdBy?: string) {
     console.log('=== CREATE USER DEBUG ===');
-    console.log('Input user data:', { 
-      phoneNumber: user.phoneNumber, 
-      fullName: user.fullName, 
-      role: user.role, 
-      createdBy 
+    console.log('Input user data:', {
+      phoneNumber: user.phoneNumber,
+      fullName: user.fullName,
+      role: user.role,
+      createdBy
     });
-    
+
     const userExist = await this.databaseService.client.user.findFirst({
       where: { phoneNumber: user.phoneNumber }
     });
     if (userExist) {
       throw new UnprocessableEntityException('Người dùng đã tồn tại');
     }
-    
+
     const createData = {
       phoneNumber: user.phoneNumber,
       fullName: user.fullName,
@@ -50,20 +50,20 @@ export class UsersService {
       role: user.role || UserRole.PATIENT,
       createdBy: createdBy || null
     };
-    
+
     console.log('Data to create:', createData);
-    
+
     const newUser = await this.databaseService.client.user.create({
       data: createData
     });
-    
-    console.log('Created user result:', { 
-      id: newUser.id, 
+
+    console.log('Created user result:', {
+      id: newUser.id,
       createdBy: newUser.createdBy,
-      role: newUser.role 
+      role: newUser.role
     });
     console.log('=== END CREATE USER DEBUG ===');
-    
+
     return newUser;
   }
 
@@ -235,7 +235,7 @@ export class UsersService {
     if (params.role) {
       where.role = params.role;
     }
-    
+
     // Add search functionality
     if (params.search && params.search.trim()) {
       const searchTerm = params.search.trim();
@@ -244,7 +244,7 @@ export class UsersService {
         { phoneNumber: { contains: searchTerm } }
       ];
     }
-    
+
     const page = params.page && params.page > 0 ? params.page : 1;
     const limit = params.limit && params.limit > 0 ? params.limit : 20;
     const orderByField = params.sortBy || 'createdAt';

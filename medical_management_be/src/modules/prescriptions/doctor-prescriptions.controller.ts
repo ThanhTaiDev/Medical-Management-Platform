@@ -20,7 +20,8 @@ export class DoctorPrescriptionsController {
 
   @Post()
   async createPrescription(
-    @Body() body: {
+    @Body()
+    body: {
       patientId: string;
       startDate?: string;
       endDate?: string;
@@ -38,7 +39,10 @@ export class DoctorPrescriptionsController {
     @UserInfo() user: IUserFromToken
   ) {
     if (user.roles !== UserRole.DOCTOR) {
-      throw new HttpException('Chỉ bác sĩ mới có thể kê đơn thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bác sĩ mới có thể kê đơn thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     console.log('=== DOCTOR CREATE PRESCRIPTION DEBUG ===');
@@ -64,7 +68,10 @@ export class DoctorPrescriptionsController {
     @Query('patientId') patientId?: string
   ) {
     if (user.roles !== UserRole.DOCTOR) {
-      throw new HttpException('Chỉ bác sĩ mới có thể xem đơn thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bác sĩ mới có thể xem đơn thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     return this.prescriptionsService.getPrescriptionsByDoctor(user.id, {
@@ -84,7 +91,10 @@ export class DoctorPrescriptionsController {
     @Query('status') status?: PrescriptionStatus
   ) {
     if (user.roles !== UserRole.DOCTOR) {
-      throw new HttpException('Chỉ bác sĩ mới có thể xem đơn thuốc của bệnh nhân', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bác sĩ mới có thể xem đơn thuốc của bệnh nhân',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     return this.prescriptionsService.getPrescriptionsByDoctor(user.id, {
@@ -103,26 +113,38 @@ export class DoctorPrescriptionsController {
     console.log('=== DOCTOR GET PRESCRIPTION DETAIL DEBUG ===');
     console.log('Doctor user:', user);
     console.log('Prescription ID:', prescriptionId);
-    
+
     if (user.roles !== UserRole.DOCTOR) {
-      throw new HttpException('Chỉ bác sĩ mới có thể xem chi tiết đơn thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bác sĩ mới có thể xem chi tiết đơn thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
-    const prescription = await this.prescriptionsService.getPrescriptionById(prescriptionId);
-    
+    const prescription =
+      await this.prescriptionsService.getPrescriptionById(prescriptionId);
+
     // Verify prescription belongs to doctor
     if (prescription.doctorId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem đơn thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem đơn thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
 
-    console.log('Prescription found:', { id: prescription.id, doctorId: prescription.doctorId, patientId: prescription.patientId });
+    console.log('Prescription found:', {
+      id: prescription.id,
+      doctorId: prescription.doctorId,
+      patientId: prescription.patientId
+    });
     return prescription;
   }
 
   @Patch(':id')
   async updatePrescription(
     @Param('id') prescriptionId: string,
-    @Body() body: {
+    @Body()
+    body: {
       status?: PrescriptionStatus;
       startDate?: string;
       endDate?: string;
@@ -140,13 +162,20 @@ export class DoctorPrescriptionsController {
     @UserInfo() user: IUserFromToken
   ) {
     if (user.roles !== UserRole.DOCTOR) {
-      throw new HttpException('Chỉ bác sĩ mới có thể cập nhật đơn thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bác sĩ mới có thể cập nhật đơn thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     // Check if doctor owns this prescription
-    const prescription = await this.prescriptionsService.getPrescriptionById(prescriptionId);
+    const prescription =
+      await this.prescriptionsService.getPrescriptionById(prescriptionId);
     if (prescription.doctorId !== user.id) {
-      throw new HttpException('Bạn không có quyền cập nhật đơn thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền cập nhật đơn thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     console.log('=== DOCTOR UPDATE PRESCRIPTION DEBUG ===');
@@ -170,7 +199,10 @@ export class DoctorPrescriptionsController {
     @Query('prescriptionId') prescriptionId?: string
   ) {
     if (user.roles !== UserRole.DOCTOR) {
-      throw new HttpException('Chỉ bác sĩ mới có thể xem tình trạng tuân thủ của bệnh nhân', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bác sĩ mới có thể xem tình trạng tuân thủ của bệnh nhân',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     if (prescriptionId) {
@@ -180,16 +212,20 @@ export class DoctorPrescriptionsController {
     }
 
     // Get all prescriptions for this patient by this doctor
-    const prescriptions = await this.prescriptionsService.getPrescriptionsByDoctor(user.id, {
-      patientId
-    });
+    const prescriptions =
+      await this.prescriptionsService.getPrescriptionsByDoctor(user.id, {
+        patientId
+      });
 
     // Get adherence logs for all prescriptions
     const adherenceData = [];
     for (const prescription of prescriptions.items) {
-      const logs = await this.prescriptionsService.getAdherenceLogs(prescription.id, {
-        patientId
-      });
+      const logs = await this.prescriptionsService.getAdherenceLogs(
+        prescription.id,
+        {
+          patientId
+        }
+      );
       adherenceData.push({
         prescription,
         adherenceLogs: logs

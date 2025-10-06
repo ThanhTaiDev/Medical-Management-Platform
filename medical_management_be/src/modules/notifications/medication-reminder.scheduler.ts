@@ -13,9 +13,10 @@ export class MedicationReminderScheduler {
   async handleMedicationReminders() {
     try {
       this.logger.log('Checking for medication reminders...');
-      
-      const remindersCreated = await this.notificationsService.scheduleMedicationReminders();
-      
+
+      const remindersCreated =
+        await this.notificationsService.scheduleMedicationReminders();
+
       if (remindersCreated > 0) {
         this.logger.log(`Created ${remindersCreated} medication reminders`);
       }
@@ -29,10 +30,9 @@ export class MedicationReminderScheduler {
   async handleLowAdherenceAlerts() {
     try {
       this.logger.log('Checking for low adherence patterns...');
-      
+
       // Logic để kiểm tra tỷ lệ tuân thủ và tạo cảnh báo
       // Có thể implement sau khi có đủ dữ liệu adherence logs
-      
     } catch (error) {
       this.logger.error('Error checking low adherence:', error);
     }

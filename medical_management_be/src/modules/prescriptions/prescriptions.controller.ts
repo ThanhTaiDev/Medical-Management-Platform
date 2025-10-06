@@ -25,15 +25,22 @@ export class PrescriptionsController {
     @Param('id') id: string,
     @UserInfo() user: IUserFromToken
   ) {
-    const prescription = await this.prescriptionsService.getPrescriptionById(id);
-    
+    const prescription =
+      await this.prescriptionsService.getPrescriptionById(id);
+
     // Check permissions
     if (user.roles === UserRole.PATIENT && prescription.patientId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem đơn thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem đơn thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
-    
+
     if (user.roles === UserRole.DOCTOR && prescription.doctorId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem đơn thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem đơn thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     return prescription;
@@ -46,15 +53,22 @@ export class PrescriptionsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string
   ) {
-    const prescription = await this.prescriptionsService.getPrescriptionById(prescriptionId);
-    
+    const prescription =
+      await this.prescriptionsService.getPrescriptionById(prescriptionId);
+
     // Check permissions
     if (user.roles === UserRole.PATIENT && prescription.patientId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem nhật ký này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem nhật ký này',
+        HttpStatus.FORBIDDEN
+      );
     }
-    
+
     if (user.roles === UserRole.DOCTOR && prescription.doctorId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem nhật ký này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem nhật ký này',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     return this.prescriptionsService.getAdherenceLogs(prescriptionId, {
@@ -72,23 +86,33 @@ export class PrescriptionsController {
   ) {
     // Check permissions
     if (user.roles === UserRole.PATIENT && patientId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem lịch uống thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem lịch uống thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
-    
+
     if (user.roles === UserRole.DOCTOR) {
       // Doctor can view any patient's schedule
     } else if (user.roles !== UserRole.ADMIN) {
-      throw new HttpException('Bạn không có quyền xem lịch uống thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem lịch uống thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     const targetDate = date ? new Date(date) : undefined;
-    return this.prescriptionsService.getMedicationSchedule(patientId, targetDate);
+    return this.prescriptionsService.getMedicationSchedule(
+      patientId,
+      targetDate
+    );
   }
 
   @Post(':id/log-adherence')
   async logAdherence(
     @Param('id') prescriptionId: string,
-    @Body() body: {
+    @Body()
+    body: {
       prescriptionItemId?: string;
       takenAt?: string;
       status: 'TAKEN' | 'MISSED' | 'SKIPPED';
@@ -98,13 +122,20 @@ export class PrescriptionsController {
     @UserInfo() user: IUserFromToken
   ) {
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể ghi nhật ký uống thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể ghi nhật ký uống thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
-    const prescription = await this.prescriptionsService.getPrescriptionById(prescriptionId);
-    
+    const prescription =
+      await this.prescriptionsService.getPrescriptionById(prescriptionId);
+
     if (prescription.patientId !== user.id) {
-      throw new HttpException('Bạn không có quyền ghi nhật ký cho đơn thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền ghi nhật ký cho đơn thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     return this.prescriptionsService.logAdherence({

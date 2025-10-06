@@ -5,7 +5,7 @@ import { Utils } from '@/utils/utils';
 
 @Injectable()
 export class PatientService {
-  constructor(private readonly databaseService: DatabaseService) { }
+  constructor(private readonly databaseService: DatabaseService) {}
 
   async listActivePrescriptions(patientId: string) {
     return this.databaseService.client.prescription.findMany({
@@ -35,17 +35,17 @@ export class PatientService {
     console.log('=== PATIENT LIST HISTORY DEBUG ===');
     console.log('Patient ID:', patientId);
     console.log('Params:', params);
-    
+
     const page = params?.page && params.page > 0 ? params.page : 1;
     const limit = params?.limit && params.limit > 0 ? params.limit : 20;
     const orderByField = params?.sortBy || 'createdAt';
     const orderDir = params?.sortOrder || 'desc';
-    
+
     // Include all prescriptions for history (not just completed/cancelled)
     const where: any = {
       patientId
     };
-    
+
     console.log('Where clause:', where);
     const [items, total] = await Promise.all([
       this.databaseService.client.prescription.findMany({
@@ -61,7 +61,14 @@ export class PatientService {
     console.log('Query results:');
     console.log('Items count:', items.length);
     console.log('Total count:', total);
-    console.log('Items:', items.map(item => ({ id: item.id, status: item.status, startDate: item.startDate })));
+    console.log(
+      'Items:',
+      items.map((item) => ({
+        id: item.id,
+        status: item.status,
+        startDate: item.startDate
+      }))
+    );
 
     return { items, total, page, limit };
   }
@@ -71,22 +78,31 @@ export class PatientService {
       where: { prescription: { patientId, status: PrescriptionStatus.ACTIVE } },
       include: { prescription: true, medication: true }
     });
-    
+
     // Use provided date or default to today
     const targetDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
-    
-    const adherenceLogs = await this.databaseService.client.adherenceLog.findMany({
-      where: {
-        patientId,
-        takenAt: {
-          gte: startOfDay,
-          lt: endOfDay
+    const startOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate()
+    );
+    const endOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate() + 1
+    );
+
+    const adherenceLogs =
+      await this.databaseService.client.adherenceLog.findMany({
+        where: {
+          patientId,
+          takenAt: {
+            gte: startOfDay,
+            lt: endOfDay
+          }
         }
-      }
-    });
-    
+      });
+
     // Expand to schedule entries
     const reminders: Array<{
       id: string;
@@ -101,35 +117,44 @@ export class PatientService {
       route?: string;
       instructions?: string;
     }> = [];
-    
+
     for (const item of items) {
       const start = new Date(item.prescription.startDate);
       const end = item.prescription.endDate
         ? new Date(item.prescription.endDate)
         : new Date(start.getTime() + item.durationDays * 24 * 60 * 60 * 1000);
-      
+
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         for (const t of item.timesOfDay) {
           const reminderDate = d.toISOString().slice(0, 10);
-          
+
           // Create unique dose ID for this specific time slot
           const uniqueDoseId = `${item.id}-${reminderDate}-${t}`;
-          
+
           // Check if this specific dose has been logged
-          const relevantLog = adherenceLogs.find(log => 
-            log.prescriptionItemId === item.id && 
-            log.notes === uniqueDoseId // Use notes field to store uniqueDoseId
+          const relevantLog = adherenceLogs.find(
+            (log) =>
+              log.prescriptionItemId === item.id && log.notes === uniqueDoseId // Use notes field to store uniqueDoseId
           );
-          
+
           console.log(`=== DOSE ID DEBUG ===`);
           console.log(`Unique dose ID: ${uniqueDoseId}`);
-          console.log(`Found log:`, relevantLog ? { id: relevantLog.id, status: relevantLog.status, notes: relevantLog.notes } : 'null');
-          
+          console.log(
+            `Found log:`,
+            relevantLog
+              ? {
+                  id: relevantLog.id,
+                  status: relevantLog.status,
+                  notes: relevantLog.notes
+                }
+              : 'null'
+          );
+
           let status: 'PENDING' | 'TAKEN' | 'MISSED' | 'SKIPPED' = 'PENDING';
           if (relevantLog) {
             status = relevantLog.status as 'TAKEN' | 'MISSED' | 'SKIPPED';
           }
-          
+
           reminders.push({
             id: uniqueDoseId, // Unique ID for each specific doseh
             date: reminderDate,
@@ -146,18 +171,20 @@ export class PatientService {
         }
       }
     }
-    
+
     // Filter to only show reminders for the target date
     const targetDateString = targetDate.toISOString().slice(0, 10);
-    const filteredReminders = reminders.filter(r => r.date === targetDateString);
-    
+    const filteredReminders = reminders.filter(
+      (r) => r.date === targetDateString
+    );
+
     console.log('=== GET REMINDERS DEBUG ===');
     console.log('Target date:', targetDateString);
     console.log('Total reminders generated:', reminders.length);
     console.log('Filtered reminders:', filteredReminders.length);
     console.log('Adherence logs count:', adherenceLogs.length);
     console.log('Sample reminders:', filteredReminders.slice(0, 2));
-    
+
     return filteredReminders;
   }
 
@@ -321,7 +348,7 @@ export class PatientService {
   async getPatientDetailForDoctor(patientId: string) {
     console.log('=== GET PATIENT DETAIL DEBUG ===');
     console.log('Patient ID:', patientId);
-    
+
     const result = await this.databaseService.client.user.findUnique({
       where: { id: patientId },
       select: {
@@ -361,14 +388,14 @@ export class PatientService {
         }
       }
     });
-    
+
     console.log('Query result:', {
       id: result?.id,
       createdBy: result?.createdBy,
       createdByUser: result?.createdByUser
     });
     console.log('=== END GET PATIENT DETAIL DEBUG ===');
-    
+
     return result;
   }
 
@@ -380,21 +407,22 @@ export class PatientService {
       password?: string;
       role?: string;
       status?: string;
-      profile?: { 
-        gender?: string; 
-        birthDate?: string; 
+      profile?: {
+        gender?: string;
+        birthDate?: string;
         address?: string;
         birthYear?: number;
       };
     }
   ) {
     const tx = this.databaseService.client;
-    const { fullName, phoneNumber, password, role, status, profile } = data || {};
-    
+    const { fullName, phoneNumber, password, role, status, profile } =
+      data || {};
+
     // Prepare update data
     const updateData: any = {
       fullName: fullName ?? undefined,
-      phoneNumber: phoneNumber ?? undefined,
+      phoneNumber: phoneNumber ?? undefined
     };
 
     // Add password if provided
@@ -415,24 +443,24 @@ export class PatientService {
     // Handle profile update
     if (profile) {
       const profileData: any = {};
-      
+
       // Only include gender if it's not empty and valid
       if (profile.gender && profile.gender.trim() !== '') {
         profileData.gender = profile.gender as any;
       }
-      
+
       // Handle birth date
       if (profile.birthDate) {
         profileData.birthDate = new Date(profile.birthDate);
       } else if (profile.birthYear) {
         profileData.birthDate = new Date(profile.birthYear, 0, 1);
       }
-      
+
       // Only include address if it's not empty
       if (profile.address && profile.address.trim() !== '') {
         profileData.address = profile.address;
       }
-      
+
       // Only create profile update if there's data to update
       if (Object.keys(profileData).length > 0) {
         updateData.profile = {
@@ -453,12 +481,12 @@ export class PatientService {
         phoneNumber: true,
         role: true,
         status: true,
-        profile: { 
-          select: { 
-            gender: true, 
-            birthDate: true, 
+        profile: {
+          select: {
+            gender: true,
+            birthDate: true,
             address: true
-          } 
+          }
         }
       }
     });

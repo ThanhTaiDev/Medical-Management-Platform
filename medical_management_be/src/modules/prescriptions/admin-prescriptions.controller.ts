@@ -78,7 +78,8 @@ export class AdminPrescriptionsController {
   @Patch(':id')
   async updatePrescription(
     @Param('id') prescriptionId: string,
-    @Body() body: {
+    @Body()
+    body: {
       status?: PrescriptionStatus;
       startDate?: string;
       endDate?: string;
@@ -181,6 +182,9 @@ export class AdminPrescriptionsController {
     console.log('Date:', date);
 
     const targetDate = date ? new Date(date) : undefined;
-    return this.prescriptionsService.getMedicationSchedule(patientId, targetDate);
+    return this.prescriptionsService.getMedicationSchedule(
+      patientId,
+      targetDate
+    );
   }
 }

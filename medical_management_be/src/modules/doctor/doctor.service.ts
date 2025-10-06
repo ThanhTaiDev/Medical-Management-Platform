@@ -17,7 +17,7 @@ import {
 
 @Injectable()
 export class DoctorService {
-  constructor(private readonly databaseService: DatabaseService) { }
+  constructor(private readonly databaseService: DatabaseService) {}
 
   private mapGender(input?: string | null): Gender | null {
     if (!input) return null;
@@ -33,7 +33,6 @@ export class DoctorService {
     return null;
   }
 
-  
   async ListDoctor(
     doctorId: string,
     q?: string,
@@ -98,7 +97,6 @@ export class DoctorService {
     return { items, total, page, limit };
   }
 
-
   async getPatient(id: string) {
     const user = await this.databaseService.client.user.findUnique({
       where: { id },
@@ -110,16 +108,19 @@ export class DoctorService {
     return user;
   }
 
-  async createPatient(body: {
-    fullName: string;
-    phoneNumber: string;
-    password: string;
-    profile?: { gender?: string; birthDate?: string; address?: string };
-  }, createdBy?: string) {
+  async createPatient(
+    body: {
+      fullName: string;
+      phoneNumber: string;
+      password: string;
+      profile?: { gender?: string; birthDate?: string; address?: string };
+    },
+    createdBy?: string
+  ) {
     console.log('=== DOCTOR CREATE PATIENT DEBUG ===');
     console.log('Input body:', body);
     console.log('Created by:', createdBy);
-    
+
     // Basic validations to avoid 500 from invalid data shapes
     if (!body.fullName?.trim()) {
       throw new UnprocessableEntityException('Full name is required');
@@ -143,10 +144,12 @@ export class DoctorService {
     });
     if (existing) {
       console.log('❌ Phone number already exists:', body.phoneNumber);
-      throw new UnprocessableEntityException('Số điện thoại này đã được sử dụng. Vui lòng chọn số khác.');
+      throw new UnprocessableEntityException(
+        'Số điện thoại này đã được sử dụng. Vui lòng chọn số khác.'
+      );
     }
     const password = await Utils.HashUtils.hashPassword(body.password);
-    
+
     const createData = {
       fullName: body.fullName,
       phoneNumber: body.phoneNumber,
@@ -154,19 +157,22 @@ export class DoctorService {
       role: UserRole.PATIENT,
       createdBy: createdBy || null
     };
-    
+
     console.log('Data to create user:', createData);
-    
+
     const user = await this.databaseService.client.user.create({
       data: createData
     });
-    
+
     console.log('Created user:', { id: user.id, createdBy: user.createdBy });
-    
+
     if (body.profile) {
       console.log('Creating profile with data:', body.profile);
-      console.log('Gender mapping:', { input: body.profile.gender, mapped: this.mapGender(body.profile.gender) });
-      
+      console.log('Gender mapping:', {
+        input: body.profile.gender,
+        mapped: this.mapGender(body.profile.gender)
+      });
+
       const profileData = {
         userId: user.id,
         gender: this.mapGender(body.profile.gender),
@@ -175,9 +181,9 @@ export class DoctorService {
           : null,
         address: body.profile.address ?? null
       };
-      
+
       console.log('Profile data to create:', profileData);
-      
+
       await this.databaseService.client.patientProfile.create({
         data: profileData
       });
@@ -185,7 +191,7 @@ export class DoctorService {
     } else {
       console.log('No profile data provided');
     }
-    
+
     console.log('=== END DOCTOR CREATE PATIENT DEBUG ===');
     return this.getPatient(user.id);
   }
@@ -408,21 +414,28 @@ export class DoctorService {
   // Adherence / Alerts
   async overview(doctorId: string) {
     // Tổng số đơn thuốc của bác sĩ
-    const totalPrescriptions = await this.databaseService.client.prescription.count({ where: { doctorId } });
+    const totalPrescriptions =
+      await this.databaseService.client.prescription.count({
+        where: { doctorId }
+      });
 
     // Bệnh nhân đang điều trị (distinct patientId trong các đơn ACTIVE của bác sĩ)
-    const activePrescriptionPatients = await this.databaseService.client.prescription.findMany({
-      where: { doctorId, status: PrescriptionStatus.ACTIVE },
-      select: { patientId: true }
-    });
-    const activePatientsCount = new Set(activePrescriptionPatients.map(p => p.patientId)).size;
+    const activePrescriptionPatients =
+      await this.databaseService.client.prescription.findMany({
+        where: { doctorId, status: PrescriptionStatus.ACTIVE },
+        select: { patientId: true }
+      });
+    const activePatientsCount = new Set(
+      activePrescriptionPatients.map((p) => p.patientId)
+    ).size;
 
     // Tính adherence (taken / scheduled) trong phạm vi các đơn của bác sĩ
-    const doctorPrescriptions = await this.databaseService.client.prescription.findMany({
-      where: { doctorId },
-      select: { id: true }
-    });
-    const prescriptionIds = doctorPrescriptions.map(p => p.id);
+    const doctorPrescriptions =
+      await this.databaseService.client.prescription.findMany({
+        where: { doctorId },
+        select: { id: true }
+      });
+    const prescriptionIds = doctorPrescriptions.map((p) => p.id);
 
     let adherenceRate = 0;
     if (prescriptionIds.length > 0) {
@@ -432,10 +445,16 @@ export class DoctorService {
           select: { frequencyPerDay: true, durationDays: true }
         }),
         this.databaseService.client.adherenceLog.count({
-          where: { prescriptionId: { in: prescriptionIds }, status: AdherenceStatus.TAKEN }
+          where: {
+            prescriptionId: { in: prescriptionIds },
+            status: AdherenceStatus.TAKEN
+          }
         })
       ]);
-      const scheduledDoses = items.reduce((sum, it) => sum + (it.frequencyPerDay || 0) * (it.durationDays || 0), 0);
+      const scheduledDoses = items.reduce(
+        (sum, it) => sum + (it.frequencyPerDay || 0) * (it.durationDays || 0),
+        0
+      );
       adherenceRate = scheduledDoses > 0 ? takenLogs / scheduledDoses : 0;
     }
 
@@ -460,17 +479,29 @@ export class DoctorService {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          medication: { select: { id: true, name: true, strength: true, unit: true, form: true } },
+          medication: {
+            select: {
+              id: true,
+              name: true,
+              strength: true,
+              unit: true,
+              form: true
+            }
+          },
           prescription: {
             select: {
               id: true,
-              patient: { select: { id: true, fullName: true, phoneNumber: true } },
+              patient: {
+                select: { id: true, fullName: true, phoneNumber: true }
+              },
               doctor: { select: { id: true, fullName: true } }
             }
           }
         }
       }),
-      this.databaseService.client.prescriptionItem.count({ where: { prescription: { doctorId } } })
+      this.databaseService.client.prescriptionItem.count({
+        where: { prescription: { doctorId } }
+      })
     ]);
 
     const rows = items.map((it) => ({
@@ -502,15 +533,21 @@ export class DoctorService {
     const limit = params?.limit && params.limit > 0 ? params.limit : 20;
 
     // Lấy tất cả đơn ACTIVE của bác sĩ và group theo bệnh nhân
-    const prescriptions = await this.databaseService.client.prescription.findMany({
-      where: { doctorId, status: PrescriptionStatus.ACTIVE },
-      select: { id: true, patientId: true }
-    });
+    const prescriptions =
+      await this.databaseService.client.prescription.findMany({
+        where: { doctorId, status: PrescriptionStatus.ACTIVE },
+        select: { id: true, patientId: true }
+      });
 
-    const patientIds = Array.from(new Set(prescriptions.map(p => p.patientId)));
+    const patientIds = Array.from(
+      new Set(prescriptions.map((p) => p.patientId))
+    );
     const total = patientIds.length;
 
-    const pagedPatientIds = patientIds.slice((page - 1) * limit, (page - 1) * limit + limit);
+    const pagedPatientIds = patientIds.slice(
+      (page - 1) * limit,
+      (page - 1) * limit + limit
+    );
 
     if (pagedPatientIds.length === 0) {
       return { items: [], total, page, limit };
@@ -542,27 +579,41 @@ export class DoctorService {
     }>;
 
     // Fetch doctor info once
-    const doctor = await this.databaseService.client.user.findUnique({ where: { id: doctorId }, select: { id: true, fullName: true } });
+    const doctor = await this.databaseService.client.user.findUnique({
+      where: { id: doctorId },
+      select: { id: true, fullName: true }
+    });
 
     // Preload items for all paged patients' prescriptions
-    const pagedPrescriptionIds = pagedPatientIds.flatMap(pid => mapPatientToPrescriptionIds[pid] || []);
+    const pagedPrescriptionIds = pagedPatientIds.flatMap(
+      (pid) => mapPatientToPrescriptionIds[pid] || []
+    );
 
     const [items, takenLogsCounts] = await Promise.all([
       this.databaseService.client.prescriptionItem.findMany({
         where: { prescriptionId: { in: pagedPrescriptionIds } },
-        select: { prescriptionId: true, frequencyPerDay: true, durationDays: true }
+        select: {
+          prescriptionId: true,
+          frequencyPerDay: true,
+          durationDays: true
+        }
       }),
       // Count taken logs per patient across their prescriptions
       this.databaseService.client.adherenceLog.groupBy({
         by: ['patientId'],
-        where: { patientId: { in: pagedPatientIds }, prescriptionId: { in: pagedPrescriptionIds }, status: AdherenceStatus.TAKEN },
+        where: {
+          patientId: { in: pagedPatientIds },
+          prescriptionId: { in: pagedPrescriptionIds },
+          status: AdherenceStatus.TAKEN
+        },
         _count: { _all: true }
       })
     ]);
 
     const mapPatientTaken: Record<string, number> = {};
     for (const row of takenLogsCounts) {
-      mapPatientTaken[(row as any).patientId as string] = (row as any)._count._all as number;
+      mapPatientTaken[(row as any).patientId as string] = (row as any)._count
+        ._all as number;
     }
 
     // Compute scheduled per patient
@@ -570,8 +621,11 @@ export class DoctorService {
     for (const pid of pagedPatientIds) {
       const ids = mapPatientToPrescriptionIds[pid] || [];
       const scheduled = items
-        .filter(i => ids.includes(i.prescriptionId))
-        .reduce((sum, it) => sum + (it.frequencyPerDay || 0) * (it.durationDays || 0), 0);
+        .filter((i) => ids.includes(i.prescriptionId))
+        .reduce(
+          (sum, it) => sum + (it.frequencyPerDay || 0) * (it.durationDays || 0),
+          0
+        );
       mapPatientScheduled[pid] = scheduled;
     }
 
@@ -623,33 +677,40 @@ export class DoctorService {
   }
 
   // ==================== Adherence - Missed dose monitoring and doctor warnings ====================
-  async listPatientsWithRecentMissedDoses(doctorId: string, sinceDays: number = 7) {
+  async listPatientsWithRecentMissedDoses(
+    doctorId: string,
+    sinceDays: number = 7
+  ) {
     const sinceDate = new Date();
     sinceDate.setDate(sinceDate.getDate() - sinceDays);
 
     // Find all prescriptions of this doctor and collect related patientIds
-    const prescriptions = await this.databaseService.client.prescription.findMany({
-      where: { doctorId },
-      select: { id: true, patientId: true }
-    });
+    const prescriptions =
+      await this.databaseService.client.prescription.findMany({
+        where: { doctorId },
+        select: { id: true, patientId: true }
+      });
 
     if (prescriptions.length === 0) {
       return { items: [], total: 0, since: sinceDate.toISOString() };
     }
 
-    const patientIds = Array.from(new Set(prescriptions.map(p => p.patientId)));
+    const patientIds = Array.from(
+      new Set(prescriptions.map((p) => p.patientId))
+    );
 
     // Group MISSED adherence logs by patient within timeframe for prescriptions of this doctor
-    const missedByPatient = await this.databaseService.client.adherenceLog.groupBy({
-      by: ['patientId'],
-      where: {
-        patientId: { in: patientIds },
-        status: AdherenceStatus.MISSED,
-        takenAt: { gte: sinceDate },
-        prescriptionId: { in: prescriptions.map(p => p.id) }
-      },
-      _count: { _all: true }
-    });
+    const missedByPatient =
+      await this.databaseService.client.adherenceLog.groupBy({
+        by: ['patientId'],
+        where: {
+          patientId: { in: patientIds },
+          status: AdherenceStatus.MISSED,
+          takenAt: { gte: sinceDate },
+          prescriptionId: { in: prescriptions.map((p) => p.id) }
+        },
+        _count: { _all: true }
+      });
 
     if (missedByPatient.length === 0) {
       return { items: [], total: 0, since: sinceDate.toISOString() };
@@ -657,7 +718,7 @@ export class DoctorService {
 
     const mapCounts: Record<string, number> = {};
     for (const row of missedByPatient) {
-      mapCounts[row.patientId as string] = (row as any)._count._all as number;
+      mapCounts[row.patientId] = (row as any)._count._all as number;
     }
 
     // Fetch patient basic info for those who have missed logs
@@ -667,7 +728,7 @@ export class DoctorService {
     });
 
     const items = patients
-      .map(p => ({
+      .map((p) => ({
         patientId: p.id,
         fullName: p.fullName,
         phoneNumber: p.phoneNumber,
@@ -678,7 +739,11 @@ export class DoctorService {
     return { items, total: items.length, since: sinceDate.toISOString() };
   }
 
-  async warnPatientAdherence(doctorId: string, patientId: string, message?: string) {
+  async warnPatientAdherence(
+    doctorId: string,
+    patientId: string,
+    message?: string
+  ) {
     // Ensure patient belongs to this doctor (assigned via createdBy) and exists
     const patient = await this.databaseService.client.user.findUnique({
       where: { id: patientId }
@@ -687,9 +752,13 @@ export class DoctorService {
       throw new NotFoundException('Patient not found');
     }
     if (patient.createdBy && patient.createdBy !== doctorId) {
-      throw new UnprocessableEntityException('Bệnh nhân không thuộc danh sách theo dõi của bác sĩ');
+      throw new UnprocessableEntityException(
+        'Bệnh nhân không thuộc danh sách theo dõi của bác sĩ'
+      );
     }
-    const doctor = await this.databaseService.client.user.findUnique({ where: { id: doctorId } });
+    const doctor = await this.databaseService.client.user.findUnique({
+      where: { id: doctorId }
+    });
 
     const alert = await this.databaseService.client.alert.create({
       data: {
@@ -697,12 +766,152 @@ export class DoctorService {
         doctorId,
         type: AlertType.LOW_ADHERENCE,
         message:
-          message || `Bác sĩ ${doctor?.fullName || ''} nhắc nhở bạn uống thuốc đều đặn và đúng giờ theo chỉ định`,
+          message ||
+          `Bác sĩ ${doctor?.fullName || ''} nhắc nhở bạn uống thuốc đều đặn và đúng giờ theo chỉ định`,
         resolved: false
       }
     });
 
-    return { message: 'Đã gửi cảnh báo tuân thủ cho bệnh nhân', alertId: alert.id };
+    return {
+      message: 'Đã gửi cảnh báo tuân thủ cho bệnh nhân',
+      alertId: alert.id
+    };
+  }
+
+  // ==================== Danh sách bệnh nhân với trạng thái adherence và alert type ====================
+  async listPatientsWithAdherenceAndAlerts(
+    doctorId: string,
+    sinceDays: number = 7
+  ) {
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - sinceDays);
+
+    // Find all prescriptions of this doctor and collect related patientIds
+    const prescriptions =
+      await this.databaseService.client.prescription.findMany({
+        where: { doctorId },
+        select: { id: true, patientId: true }
+      });
+
+    if (prescriptions.length === 0) {
+      return { items: [], total: 0, since: sinceDate.toISOString() };
+    }
+
+    const patientIds = Array.from(
+      new Set(prescriptions.map((p) => p.patientId))
+    );
+    const prescriptionIds = prescriptions.map((p) => p.id);
+
+    // Get adherence counts by patient
+    const adherenceCounts =
+      await this.databaseService.client.adherenceLog.groupBy({
+        by: ['patientId', 'status'],
+        where: {
+          patientId: { in: patientIds },
+          takenAt: { gte: sinceDate },
+          prescriptionId: { in: prescriptionIds }
+        },
+        _count: { _all: true }
+      });
+
+    // Get alert counts by patient
+    const alertCounts = await this.databaseService.client.alert.groupBy({
+      by: ['patientId', 'type'],
+      where: {
+        patientId: { in: patientIds },
+        createdAt: { gte: sinceDate },
+        resolved: false
+      },
+      _count: { _all: true }
+    });
+
+    // Process adherence data
+    const adherenceMap: Record<
+      string,
+      { taken: number; missed: number; skipped: number }
+    > = {};
+    for (const row of adherenceCounts) {
+      const patientId = row.patientId;
+      const status = row.status as string;
+      const count = (row as any)._count._all as number;
+
+      if (!adherenceMap[patientId]) {
+        adherenceMap[patientId] = { taken: 0, missed: 0, skipped: 0 };
+      }
+
+      if (status === 'TAKEN') adherenceMap[patientId].taken = count;
+      else if (status === 'MISSED') adherenceMap[patientId].missed = count;
+      else if (status === 'SKIPPED') adherenceMap[patientId].skipped = count;
+    }
+
+    // Process alert data
+    const alertMap: Record<
+      string,
+      { missedDose: number; lowAdherence: number; other: number }
+    > = {};
+    for (const row of alertCounts) {
+      const patientId = row.patientId;
+      const type = row.type as string;
+      const count = (row as any)._count._all as number;
+
+      if (!alertMap[patientId]) {
+        alertMap[patientId] = { missedDose: 0, lowAdherence: 0, other: 0 };
+      }
+
+      if (type === 'MISSED_DOSE') alertMap[patientId].missedDose = count;
+      else if (type === 'LOW_ADHERENCE')
+        alertMap[patientId].lowAdherence = count;
+      else if (type === 'OTHER') alertMap[patientId].other = count;
+    }
+
+    // Fetch patient basic info
+    const patients = await this.databaseService.client.user.findMany({
+      where: { id: { in: patientIds } },
+      select: { id: true, fullName: true, phoneNumber: true }
+    });
+
+    const items = patients.map((patient) => {
+      const adherence = adherenceMap[patient.id] || {
+        taken: 0,
+        missed: 0,
+        skipped: 0
+      };
+      const alerts = alertMap[patient.id] || {
+        missedDose: 0,
+        lowAdherence: 0,
+        other: 0
+      };
+
+      // Determine primary status
+      let primaryStatus: 'TAKEN' | 'MISSED' | 'MIXED' = 'TAKEN';
+      if (adherence.missed > 0 && adherence.taken === 0) {
+        primaryStatus = 'MISSED';
+      } else if (adherence.missed > 0 && adherence.taken > 0) {
+        primaryStatus = 'MIXED';
+      }
+
+      return {
+        patientId: patient.id,
+        fullName: patient.fullName,
+        phoneNumber: patient.phoneNumber,
+        adherence,
+        alerts,
+        primaryStatus,
+        totalMissed: adherence.missed,
+        totalTaken: adherence.taken,
+        totalAlerts: alerts.missedDose + alerts.lowAdherence + alerts.other
+      };
+    });
+
+    // Sort by missed count descending, then by taken count ascending
+    items.sort((a, b) => {
+      if (b.totalMissed !== a.totalMissed) {
+        return b.totalMissed - a.totalMissed;
+      }
+      return a.totalTaken - b.totalTaken;
+    });
+
+    return { items, total: items.length, since: sinceDate.toISOString() };
   }
 
   // CRUD Operations for Doctor Management
@@ -741,7 +950,7 @@ export class DoctorService {
     }
 
     const hashedPassword = await Utils.HashUtils.hashPassword(body.password);
-    
+
     const doctor = await this.databaseService.client.user.create({
       data: {
         fullName: body.fullName,
@@ -756,12 +965,15 @@ export class DoctorService {
     return doctor;
   }
 
-  async updateDoctor(id: string, body: {
-    fullName?: string;
-    phoneNumber?: string;
-    majorDoctor?: string;
-    status?: string;
-  }) {
+  async updateDoctor(
+    id: string,
+    body: {
+      fullName?: string;
+      phoneNumber?: string;
+      majorDoctor?: string;
+      status?: string;
+    }
+  ) {
     const doctor = await this.getDoctor(id);
 
     // Validate majorDoctor if provided
@@ -805,7 +1017,7 @@ export class DoctorService {
 
   async deleteDoctor(id: string) {
     const doctor = await this.getDoctor(id);
-    
+
     // Soft delete
     await this.databaseService.client.user.update({
       where: { id },

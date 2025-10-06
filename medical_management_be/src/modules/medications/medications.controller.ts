@@ -18,7 +18,7 @@ import { SkipPermission } from '@/common/decorators/isPublicRoute';
 
 @Controller('admin/medications')
 export class MedicationsController {
-  constructor(private readonly medicationsService: MedicationsService) { }
+  constructor(private readonly medicationsService: MedicationsService) {}
 
   @Get('get-all')
   @SkipPermission()

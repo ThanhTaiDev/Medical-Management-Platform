@@ -30,9 +30,12 @@ export class PatientPrescriptionsController {
     console.log('User roles:', user.roles);
     console.log('User ID:', user.id);
     console.log('Query params:', { page, limit, status });
-    
+
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể xem đơn thuốc của mình', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể xem đơn thuốc của mình',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     return this.prescriptionsService.getPrescriptionsByPatient(user.id, {
@@ -50,19 +53,30 @@ export class PatientPrescriptionsController {
     console.log('=== PATIENT GET PRESCRIPTION DETAIL DEBUG ===');
     console.log('User:', user);
     console.log('Prescription ID:', prescriptionId);
-    
+
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể xem chi tiết đơn thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể xem chi tiết đơn thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
-    const prescription = await this.prescriptionsService.getPrescriptionById(prescriptionId);
-    
+    const prescription =
+      await this.prescriptionsService.getPrescriptionById(prescriptionId);
+
     // Verify prescription belongs to patient
     if (prescription.patientId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem đơn thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem đơn thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
 
-    console.log('Prescription found:', { id: prescription.id, patientId: prescription.patientId, doctorId: prescription.doctorId });
+    console.log('Prescription found:', {
+      id: prescription.id,
+      patientId: prescription.patientId,
+      doctorId: prescription.doctorId
+    });
     return prescription;
   }
 
@@ -72,7 +86,10 @@ export class PatientPrescriptionsController {
     @Query('date') date?: string
   ) {
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể xem lịch uống thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể xem lịch uống thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     const targetDate = date ? new Date(date) : undefined;
@@ -82,7 +99,10 @@ export class PatientPrescriptionsController {
   @Get('today')
   async getTodaySchedule(@UserInfo() user: IUserFromToken) {
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể xem lịch hôm nay', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể xem lịch hôm nay',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     const today = new Date();
@@ -92,7 +112,8 @@ export class PatientPrescriptionsController {
   @Post(':id/confirm-taken')
   async confirmMedicationTaken(
     @Param('id') prescriptionId: string,
-    @Body() body: {
+    @Body()
+    body: {
       prescriptionItemId?: string;
       amount?: string;
       notes?: string;
@@ -100,7 +121,10 @@ export class PatientPrescriptionsController {
     @UserInfo() user: IUserFromToken
   ) {
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể xác nhận uống thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể xác nhận uống thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     console.log('=== PATIENT CONFIRM MEDICATION TAKEN DEBUG ===');
@@ -122,14 +146,18 @@ export class PatientPrescriptionsController {
   @Post(':id/mark-missed')
   async markMedicationMissed(
     @Param('id') prescriptionId: string,
-    @Body() body: {
+    @Body()
+    body: {
       prescriptionItemId?: string;
       notes?: string;
     },
     @UserInfo() user: IUserFromToken
   ) {
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể đánh dấu bỏ lỡ thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể đánh dấu bỏ lỡ thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     console.log('=== PATIENT MARK MEDICATION MISSED DEBUG ===');
@@ -156,13 +184,20 @@ export class PatientPrescriptionsController {
     @Query('limit') limit?: string
   ) {
     if (user.roles !== UserRole.PATIENT) {
-      throw new HttpException('Chỉ bệnh nhân mới có thể xem lịch sử uống thuốc', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể xem lịch sử uống thuốc',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     // Verify prescription belongs to patient
-    const prescription = await this.prescriptionsService.getPrescriptionById(prescriptionId);
+    const prescription =
+      await this.prescriptionsService.getPrescriptionById(prescriptionId);
     if (prescription.patientId !== user.id) {
-      throw new HttpException('Bạn không có quyền xem lịch sử đơn thuốc này', HttpStatus.FORBIDDEN);
+      throw new HttpException(
+        'Bạn không có quyền xem lịch sử đơn thuốc này',
+        HttpStatus.FORBIDDEN
+      );
     }
 
     return this.prescriptionsService.getAdherenceLogs(prescriptionId, {
