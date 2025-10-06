@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { DatabaseModule } from '@/core/database/database.module';
 import { LoggerModule } from '@/core/logger/logger.module';
 import { PrescriptionsController } from './prescriptions.controller';
@@ -6,9 +6,14 @@ import { PrescriptionsService } from '@/modules/prescriptions/prescriptions.serv
 import { DoctorPrescriptionsController } from './doctor-prescriptions.controller';
 import { PatientPrescriptionsController } from './patient-prescriptions.controller';
 import { AdminPrescriptionsController } from './admin-prescriptions.controller';
+import { NotificationsModule } from '@/modules/notifications/notifications.module';
 
 @Module({
-  imports: [DatabaseModule, LoggerModule],
+  imports: [
+    DatabaseModule, 
+    LoggerModule,
+    forwardRef(() => NotificationsModule)
+  ],
   controllers: [
     PrescriptionsController,
     DoctorPrescriptionsController,

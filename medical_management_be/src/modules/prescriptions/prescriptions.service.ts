@@ -1,10 +1,13 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException
+  BadRequestException,
+  Inject,
+  forwardRef
 } from '@nestjs/common';
 import { DatabaseService } from '@/core/database/database.service';
 import { PrescriptionStatus, AdherenceStatus } from '@prisma/client';
+import { MedicalManagementGateway } from '@/modules/notifications/websocket.gateway';
 
 export interface CreatePrescriptionDto {
   patientId: string;
@@ -56,7 +59,11 @@ export interface AdherenceLogDto {
 
 @Injectable()
 export class PrescriptionsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    @Inject(forwardRef(() => MedicalManagementGateway))
+    private readonly websocketGateway: MedicalManagementGateway
+  ) { }
 
   // ==================== PRESCRIPTION MANAGEMENT ====================
 
@@ -523,6 +530,9 @@ export class PrescriptionsService {
   async logAdherence(data: AdherenceLogDto) {
     console.log('=== LOG ADHERENCE DEBUG ===');
     console.log('Adherence data:', data);
+    console.log('Patient ID:', data.patientId);
+    console.log('Prescription ID:', data.prescriptionId);
+    console.log('Status:', data.status);
 
     // Validate prescription exists
     const prescription =
@@ -553,25 +563,26 @@ export class PrescriptionsService {
         throw new BadRequestException('Dòng đơn thuốc không hợp lệ');
       }
 
-      // Generate unique dose ID for checking duplicates
-      const today = new Date().toISOString().slice(0, 10);
-      const uniqueDoseId =
-        data.notes ||
-        `${data.prescriptionItemId}-${today}-${new Date().getHours()}`;
+      // Check if this specific dose has already been logged today (more flexible)
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-      // Check if this specific dose has already been logged
       const existingLog =
         await this.databaseService.client.adherenceLog.findFirst({
           where: {
             prescriptionItemId: data.prescriptionItemId,
             patientId: data.patientId,
-            notes: uniqueDoseId,
-            status: data.status
+            status: data.status,
+            takenAt: {
+              gte: startOfDay,
+              lt: endOfDay
+            }
           }
         });
 
       if (existingLog) {
-        throw new BadRequestException('Bạn đã xác nhận liều thuốc này rồi');
+        throw new BadRequestException('Bạn đã xác nhận liều thuốc này hôm nay rồi');
       }
     }
 
@@ -618,6 +629,69 @@ export class PrescriptionsService {
     });
 
     console.log('Created adherence log:', adherenceLog.id);
+
+    // Tự động resolve các LOW_ADHERENCE alerts khi patient uống thuốc
+    if (data.status === 'TAKEN') {
+      try {
+        const today = new Date();
+        const startOfToday = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate()
+        );
+        const endOfToday = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate() + 1
+        );
+
+        // Resolve các LOW_ADHERENCE alerts của ngày hôm nay
+        const resolvedAlerts =
+          await this.databaseService.client.alert.updateMany({
+            where: {
+              patientId: data.patientId,
+              type: 'LOW_ADHERENCE',
+              resolved: false,
+              createdAt: {
+                gte: startOfToday,
+                lt: endOfToday
+              }
+            },
+            data: {
+              resolved: true
+            }
+          });
+
+        console.log(
+          `Auto-resolved ${resolvedAlerts.count} LOW_ADHERENCE alerts for patient:`,
+          data.patientId
+        );
+
+        // Gửi WebSocket notification cho Doctor ngay lập tức
+        try {
+          const prescription =
+            await this.databaseService.client.prescription.findUnique({
+              where: { id: data.prescriptionId },
+              select: { doctorId: true }
+            });
+
+          if (prescription?.doctorId) {
+            this.websocketGateway.notifyDoctorAdherenceUpdate(
+              prescription.doctorId,
+              data.patientId,
+              'TAKEN'
+            );
+            console.log(`✅ Sent real-time notification to doctor ${prescription.doctorId} - Patient ${data.patientId} took medication`);
+          }
+        } catch (wsError) {
+          console.error('❌ Failed to send WebSocket notification:', wsError);
+          // Don't throw error - adherence log was created successfully
+        }
+      } catch (error) {
+        console.error('Failed to auto-resolve LOW_ADHERENCE alerts:', error);
+        // Don't throw error - adherence log was created successfully
+      }
+    }
 
     // Create alert if status is MISSED
     if (data.status === 'MISSED') {

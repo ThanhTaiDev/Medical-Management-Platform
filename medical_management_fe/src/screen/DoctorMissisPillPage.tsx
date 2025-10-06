@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DoctorApi } from "@/api/doctor";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -48,21 +49,73 @@ const DoctorMissisPillPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [sinceDays, setSinceDays] = useState<number>(90);
   const [search, setSearch] = useState<string>("");
+  
+  // WebSocket connection
+  const token = localStorage.getItem('token'); // Lấy token từ localStorage
+  const { isConnected, joinRoom } = useWebSocket(token || undefined);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["doctor-adherence-status", sinceDays],
     queryFn: () => DoctorApi.listPatientsWithAdherenceAndAlerts(sinceDays),
-    staleTime: 30_000,
+    staleTime: 10_000, // Giảm staleTime xuống 10 giây để cập nhật nhanh hơn
+    refetchInterval: 30_000, // Tự động refetch mỗi 30 giây
+    refetchIntervalInBackground: true, // Tiếp tục refetch khi tab không active
+    refetchOnWindowFocus: true, // Refetch khi user focus lại tab
   });
+
+  // Listen for WebSocket events và auto-refresh data
+  useEffect(() => {
+    const handleAdherenceUpdate = (event: CustomEvent) => {
+      const { patientId, status } = event.detail;
+      console.log(`Patient ${patientId} adherence updated: ${status}`);
+      
+      // Invalidate và refetch data ngay lập tức
+      queryClient.invalidateQueries({
+        queryKey: ["doctor-adherence-status"],
+      });
+    };
+
+    const handleDoctorWarning = (event: CustomEvent) => {
+      const { patientId } = event.detail;
+      console.log(`Doctor warning sent to patient ${patientId}`);
+      
+      // Invalidate queries để cập nhật warning count
+      queryClient.invalidateQueries({
+        queryKey: ["doctor-adherence-status"],
+      });
+    };
+
+    // Join doctor room khi WebSocket connected
+    if (isConnected) {
+      joinRoom('doctors');
+    }
+
+    // Listen for custom events
+    window.addEventListener('adherence-updated', handleAdherenceUpdate as EventListener);
+    window.addEventListener('doctor-warning', handleDoctorWarning as EventListener);
+    window.addEventListener('adherence-broadcast', handleAdherenceUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('adherence-updated', handleAdherenceUpdate as EventListener);
+      window.removeEventListener('doctor-warning', handleDoctorWarning as EventListener);
+      window.removeEventListener('adherence-broadcast', handleAdherenceUpdate as EventListener);
+    };
+  }, [isConnected, joinRoom, queryClient]);
 
   const warnMutation = useMutation({
     mutationFn: (args: { patientId: string; message?: string }) =>
       DoctorApi.warnPatient(args.patientId, args.message),
     onSuccess: async () => {
       toast.success("Đã nhắc nhở bệnh nhân!", { duration: 2000 });
-      await queryClient.invalidateQueries({
-        queryKey: ["doctor-adherence-status"],
-      });
+      // Invalidate tất cả queries liên quan đến adherence
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["doctor-adherence-status"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["notifications"],
+        }),
+      ]);
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Gửi nhắc nhở thất bại");
@@ -158,6 +211,49 @@ const DoctorMissisPillPage: React.FC = () => {
               />
               Làm mới
             </Button>
+            
+            {/* Test WebSocket button */}
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/doctor/test-websocket', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  const result = await response.json();
+                  console.log('WebSocket test result:', result);
+                  toast.success('WebSocket test sent!');
+                } catch (error) {
+                  console.error('WebSocket test error:', error);
+                  toast.error('WebSocket test failed');
+                }
+              }}
+              className="bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-700"
+            >
+              🔔 Test WS
+            </Button>
+            
+            {/* Real-time indicator */}
+            <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${isFetching ? 'bg-green-500 animate-pulse' : 'bg-green-400'}`} />
+                <span className="hidden md:inline text-green-600">
+                  {isFetching ? 'Đang cập nhật...' : 'Đang đồng bộ'}
+                </span>
+              </div>
+              
+              {/* WebSocket status */}
+              <div className="flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-blue-500' : 'bg-red-400'}`} />
+                <span className="hidden md:inline text-blue-600">
+                  {isConnected ? 'Real-time' : 'Offline'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -507,7 +603,6 @@ const DoctorMissisPillPage: React.FC = () => {
                                       : "hover:shadow-md hover:scale-105"
                                   }`}
                                   onClick={() => {
-                                    // Chỉ cho phép click khi không phải COMPLIANT
                                     if (row.todayStatus !== "COMPLIANT") {
                                       warnMutation.mutate({
                                         patientId: row.patientId,
@@ -532,13 +627,13 @@ const DoctorMissisPillPage: React.FC = () => {
                               <TooltipContent className="max-w-xs">
                                 <p className="text-center">
                                   {row.todayStatus === "COMPLIANT"
-                                    ? "Bệnh nhân đã tuân thủ uống thuốc đầy đủ hôm nay - Không cần nhắc nhở"
+                                    ? "Bệnh nhân đã tuân thủ uống thuốc đầy đủ hôm nay"
                                     : row.todayStatus === "PARTIAL"
-                                    ? "Bệnh nhân tuân thủ một phần hôm nay - Có thể nhắc nhở"
+                                    ? "Bệnh nhân tuân thủ một phần hôm nay"
                                     : row.todayWarningCount >= 3
                                     ? "Đã nhắc nhở tối đa 3 lần trong ngày"
                                     : row.todayWarningCount > 0
-                                    ? `Đã nhắc nhở ${row.todayWarningCount} lần hôm nay - Có thể nhắc nhở thêm`
+                                    ? `Đã nhắc nhở ${row.todayWarningCount} lần hôm nay`
                                     : "Gửi cảnh báo tuân thủ tới bệnh nhân"}
                                 </p>
                               </TooltipContent>
