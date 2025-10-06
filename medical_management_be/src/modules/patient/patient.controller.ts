@@ -16,7 +16,7 @@ import { Public, SkipPermission } from '@/common/decorators/isPublicRoute';
 
 @Controller('patient')
 export class PatientController {
-  constructor(private readonly patientService: PatientService) { }
+  constructor(private readonly patientService: PatientService) {}
 
   private ensurePatient(user: IUserFromToken) {
     if (user.roles !== UserRole.PATIENT) {
@@ -67,9 +67,9 @@ export class PatientController {
       password?: string;
       role?: string;
       status?: string;
-      profile?: { 
-        gender?: string; 
-        birthDate?: string; 
+      profile?: {
+        gender?: string;
+        birthDate?: string;
         address?: string;
         birthYear?: number;
       };
@@ -105,7 +105,10 @@ export class PatientController {
   }
   // Lịch sử uống thuốc
   @Get('reminders')
-  async reminders(@UserInfo() user: IUserFromToken, @Query('date') date?: string) {
+  async reminders(
+    @UserInfo() user: IUserFromToken,
+    @Query('date') date?: string
+  ) {
     this.ensurePatient(user);
     return this.patientService.getReminders(user.id, date);
   }

@@ -17,7 +17,7 @@ import { UserRole } from '@prisma/client';
 
 @Controller('doctor')
 export class DoctorController {
-  constructor(private readonly doctorService: DoctorService) { }
+  constructor(private readonly doctorService: DoctorService) {}
 
   private ensureDoctor(user: IUserFromToken) {
     if (user.roles !== UserRole.DOCTOR && user.roles !== UserRole.ADMIN) {
@@ -62,7 +62,6 @@ export class DoctorController {
       sortOrder
     });
   }
-
 
   @Get('patients/:id')
   async getPatient(@Param('id') id: string, @UserInfo() user: IUserFromToken) {
@@ -129,7 +128,8 @@ export class DoctorController {
     @Query('doctorId') doctorId?: string
   ) {
     this.ensureDoctor(user);
-    const effectiveDoctorId = user.roles === UserRole.ADMIN ? (doctorId || user.id) : user.id;
+    const effectiveDoctorId =
+      user.roles === UserRole.ADMIN ? doctorId || user.id : user.id;
     return this.doctorService.overview(effectiveDoctorId);
   }
 
@@ -142,7 +142,8 @@ export class DoctorController {
     @Query('doctorId') doctorId?: string
   ) {
     this.ensureDoctor(user);
-    const effectiveDoctorId = user.roles === UserRole.ADMIN ? (doctorId || user.id) : user.id;
+    const effectiveDoctorId =
+      user.roles === UserRole.ADMIN ? doctorId || user.id : user.id;
     return this.doctorService.listPrescriptionItemsOverview(effectiveDoctorId, {
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined
@@ -158,11 +159,15 @@ export class DoctorController {
     @Query('doctorId') doctorId?: string
   ) {
     this.ensureDoctor(user);
-    const effectiveDoctorId = user.roles === UserRole.ADMIN ? (doctorId || user.id) : user.id;
-    return this.doctorService.listActivePatientsWithAdherence(effectiveDoctorId, {
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined
-    });
+    const effectiveDoctorId =
+      user.roles === UserRole.ADMIN ? doctorId || user.id : user.id;
+    return this.doctorService.listActivePatientsWithAdherence(
+      effectiveDoctorId,
+      {
+        page: page ? parseInt(page) : undefined,
+        limit: limit ? parseInt(limit) : undefined
+      }
+    );
   }
 
   @Get('patients/:id/adherence')
@@ -202,6 +207,19 @@ export class DoctorController {
     );
   }
 
+  // Adherence - Patients with detailed adherence status and alert types
+  @Get('adherence/status')
+  async patientsWithAdherenceAndAlerts(
+    @UserInfo() user: IUserFromToken,
+    @Query('sinceDays') sinceDays?: string
+  ) {
+    this.ensureDoctor(user);
+    return this.doctorService.listPatientsWithAdherenceAndAlerts(
+      user.id,
+      sinceDays ? parseInt(sinceDays) : 7
+    );
+  }
+
   // Doctor sends adherence warning to a patient
   @Post('patients/:id/warn')
   async warnPatient(
@@ -210,13 +228,18 @@ export class DoctorController {
     @UserInfo() user: IUserFromToken
   ) {
     this.ensureDoctor(user);
-    return this.doctorService.warnPatientAdherence(user.id, patientId, body?.message);
+    return this.doctorService.warnPatientAdherence(
+      user.id,
+      patientId,
+      body?.message
+    );
   }
 
   // CRUD Operations for Doctor Management
   @Post('doctor')
   async createDoctor(
-    @Body() body: {
+    @Body()
+    body: {
       fullName: string;
       phoneNumber: string;
       password: string;
@@ -232,7 +255,8 @@ export class DoctorController {
   @Put('doctor/:id')
   async updateDoctor(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       fullName?: string;
       phoneNumber?: string;
       majorDoctor?: string;
@@ -255,10 +279,7 @@ export class DoctorController {
   }
 
   @Get('doctor/:id')
-  async getDoctor(
-    @Param('id') id: string,
-    @UserInfo() user: IUserFromToken
-  ) {
+  async getDoctor(@Param('id') id: string, @UserInfo() user: IUserFromToken) {
     this.ensureDoctor(user);
     const doctor = await this.doctorService.getDoctor(id);
     return { data: doctor };

@@ -134,28 +134,35 @@ export class NotificationsService {
     return alert;
   }
 
-  async createMissedDoseAlert(prescriptionId: string, patientId: string, doctorId?: string) {
-    const prescription = await this.databaseService.client.prescription.findUnique({
-      where: { id: prescriptionId },
-      include: {
-        patient: {
-          select: { fullName: true }
-        },
-        items: {
-          include: {
-            medication: {
-              select: { name: true }
+  async createMissedDoseAlert(
+    prescriptionId: string,
+    patientId: string,
+    doctorId?: string
+  ) {
+    const prescription =
+      await this.databaseService.client.prescription.findUnique({
+        where: { id: prescriptionId },
+        include: {
+          patient: {
+            select: { fullName: true }
+          },
+          items: {
+            include: {
+              medication: {
+                select: { name: true }
+              }
             }
           }
         }
-      }
-    });
+      });
 
     if (!prescription) {
       throw new Error('Prescription not found');
     }
 
-    const medicationNames = prescription.items.map(item => item.medication.name).join(', ');
+    const medicationNames = prescription.items
+      .map((item) => item.medication.name)
+      .join(', ');
     const message = `Nhắc nhở: Bạn đã bỏ lỡ liều thuốc ${medicationNames}. Vui lòng uống thuốc đúng giờ theo chỉ định của bác sĩ.`;
 
     return this.createMedicationReminder({
@@ -167,28 +174,35 @@ export class NotificationsService {
     });
   }
 
-  async createLowAdherenceAlert(prescriptionId: string, patientId: string, doctorId?: string) {
-    const prescription = await this.databaseService.client.prescription.findUnique({
-      where: { id: prescriptionId },
-      include: {
-        patient: {
-          select: { fullName: true }
-        },
-        items: {
-          include: {
-            medication: {
-              select: { name: true }
+  async createLowAdherenceAlert(
+    prescriptionId: string,
+    patientId: string,
+    doctorId?: string
+  ) {
+    const prescription =
+      await this.databaseService.client.prescription.findUnique({
+        where: { id: prescriptionId },
+        include: {
+          patient: {
+            select: { fullName: true }
+          },
+          items: {
+            include: {
+              medication: {
+                select: { name: true }
+              }
             }
           }
         }
-      }
-    });
+      });
 
     if (!prescription) {
       throw new Error('Prescription not found');
     }
 
-    const medicationNames = prescription.items.map(item => item.medication.name).join(', ');
+    const medicationNames = prescription.items
+      .map((item) => item.medication.name)
+      .join(', ');
     const message = `Cảnh báo: Tỷ lệ tuân thủ uống thuốc ${medicationNames} của bạn đang thấp. Vui lòng tuân thủ đúng lịch uống thuốc để đạt hiệu quả điều trị tốt nhất.`;
 
     return this.createMedicationReminder({
@@ -280,57 +294,56 @@ export class NotificationsService {
 
   async scheduleMedicationReminders() {
     console.log('=== SCHEDULE MEDICATION REMINDERS DEBUG ===');
-    
+
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
 
     // Get active prescriptions with scheduled times matching current time
-    const activePrescriptions = await this.databaseService.client.prescription.findMany({
-      where: {
-        status: 'ACTIVE',
-        startDate: { lte: now },
-        OR: [
-          { endDate: null },
-          { endDate: { gte: now } }
-        ]
-      },
-      include: {
-        items: {
-          include: {
-            medication: {
-              select: {
-                name: true,
-                strength: true
+    const activePrescriptions =
+      await this.databaseService.client.prescription.findMany({
+        where: {
+          status: 'ACTIVE',
+          startDate: { lte: now },
+          OR: [{ endDate: null }, { endDate: { gte: now } }]
+        },
+        include: {
+          items: {
+            include: {
+              medication: {
+                select: {
+                  name: true,
+                  strength: true
+                }
               }
             }
-          }
-        },
-        patient: {
-          select: {
-            id: true,
-            fullName: true,
-            phoneNumber: true
-          }
-        },
-        doctor: {
-          select: {
-            id: true,
-            fullName: true
+          },
+          patient: {
+            select: {
+              id: true,
+              fullName: true,
+              phoneNumber: true
+            }
+          },
+          doctor: {
+            select: {
+              id: true,
+              fullName: true
+            }
           }
         }
-      }
-    });
+      });
 
     const remindersToCreate = [];
 
     for (const prescription of activePrescriptions) {
       for (const item of prescription.items) {
         if (item.timesOfDay.includes(currentTime)) {
-          const medicationName = `${item.medication.name} ${item.medication.strength || ''}`.trim();
+          const medicationName =
+            `${item.medication.name} ${item.medication.strength || ''}`.trim();
           const message = `🔔 Nhắc nhở uống thuốc: ${medicationName} - ${item.dosage} vào lúc ${currentTime}`;
-          
+
           remindersToCreate.push({
             prescriptionId: prescription.id,
             patientId: prescription.patientId,
@@ -344,8 +357,10 @@ export class NotificationsService {
 
     // Create reminders
     if (remindersToCreate.length > 0) {
-      console.log(`Creating ${remindersToCreate.length} medication reminders for time ${currentTime}`);
-      
+      console.log(
+        `Creating ${remindersToCreate.length} medication reminders for time ${currentTime}`
+      );
+
       for (const reminderData of remindersToCreate) {
         await this.createMedicationReminder(reminderData);
       }
