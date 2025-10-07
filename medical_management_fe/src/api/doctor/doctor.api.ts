@@ -36,9 +36,23 @@ export const doctorApi = {
     if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
     const res = await axiosInstance.get(`/doctor/doctor?${queryParams.toString()}`);
+    const payload = res.data;
+    const items = payload.data || payload.items || [];
+    const total = payload.total || 0;
+    const currentPage = payload.page || params?.page || 1;
+    const perPage = payload.limit || params?.limit || 10;
+    
     return {
-      data: res.data.data || res.data.items || [],
-      total: res.data.total || 0,
+      data: items,
+      total,
+      pagination: {
+        total,
+        limit: perPage,
+        currentPage,
+        totalPages: Math.ceil((total || 0) / (perPage || 1)),
+        hasNextPage: currentPage < Math.ceil((total || 0) / (perPage || 1)),
+        hasPrevPage: currentPage > 1
+      },
       statusCode: res.status || 200,
     };
   },

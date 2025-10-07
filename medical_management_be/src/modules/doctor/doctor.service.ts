@@ -49,7 +49,7 @@ export class DoctorService {
       ...(q ? { fullName: { contains: q, mode: 'insensitive' } } : {})
     };
     const page = params?.page && params.page > 0 ? params.page : 1;
-    const limit = params?.limit && params.limit > 0 ? params.limit : 20;
+    const limit = params?.limit && params.limit > 0 ? params.limit : 10;
     const orderByField = params?.sortBy || 'createdAt';
     const orderDir = params?.sortOrder || 'desc';
     const [items, total] = await Promise.all([

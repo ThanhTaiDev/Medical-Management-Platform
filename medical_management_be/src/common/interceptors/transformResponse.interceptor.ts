@@ -57,6 +57,10 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response> {
         message: data?.message,
         pagination: data?.pagination,
         data: Utils.CommonUtils.filterObject(data?.data || data, keysToRemove),
+        // Keep pagination fields from service response
+        total: data?.total,
+        page: data?.page,
+        limit: data?.limit,
         statusCode: context.switchToHttp().getResponse().statusCode
       }))
     );

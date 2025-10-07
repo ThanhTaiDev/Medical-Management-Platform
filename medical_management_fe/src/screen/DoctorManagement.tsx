@@ -2436,40 +2436,41 @@ const DoctorManagement: React.FC = () => {
                 </div>
 
                 {/* Pagination for Doctors */}
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-gradient-to-r from-transparent via-border/30 to-transparent">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="w-2 h-2 bg-primary/60 rounded-full animate-pulse"></div>
-                    Trang {doctorPage} • Hiển thị{" "}
-                    <span className="font-semibold text-primary">
-                      {toArray(doctorsData?.data).length}
-                    </span>{" "}
-                    /{" "}
-                    <span className="font-semibold text-primary">
-                      {doctorsData?.total || 0}
-                    </span>{" "}
-                    bác sĩ
+                <div className="flex items-center justify-between mt-6">
+                  <div className="text-sm text-muted-foreground">
+                    {doctorSearch ? (
+                      <>
+                        Tìm thấy <strong>{doctorsData?.pagination?.total || 0}</strong> bác sĩ
+                        {doctorsData?.pagination?.totalPages && doctorsData.pagination.totalPages > 1 && (
+                          <>
+                            {" "}
+                            — Trang {doctorsData?.pagination?.currentPage} /{" "}
+                            {doctorsData?.pagination?.totalPages}
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        Trang {doctorsData?.pagination?.currentPage} / {doctorsData?.pagination?.totalPages} —
+                        Tổng {doctorsData?.pagination?.total} bác sĩ
+                      </>
+                    )}
                   </div>
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="px-3 py-1 rounded border border-border/30 hover:bg-accent/30 disabled:opacity-50 transition-colors duration-150"
                       onClick={() => setDoctorPage((p) => Math.max(1, p - 1))}
-                      disabled={doctorPage === 1}
-                      className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 hover:text-primary hover:shadow-md hover:shadow-primary/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={!doctorsData?.pagination?.hasPrevPage}
                     >
-                      ← Trước
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                      Trước
+                    </button>
+                    <button
+                      className="px-3 py-1 rounded border border-border/30 hover:bg-accent/30 disabled:opacity-50 transition-colors duration-150"
                       onClick={() => setDoctorPage((p) => p + 1)}
-                      disabled={
-                        doctorPage * doctorLimit >= (doctorsData?.total || 0)
-                      }
-                      className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 hover:text-primary hover:shadow-md hover:shadow-primary/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={!doctorsData?.pagination?.hasNextPage}
                     >
-                      Sau →
-                    </Button>
+                      Sau
+                    </button>
                   </div>
                 </div>
               </div>
