@@ -163,16 +163,16 @@ export default function DoctorPatientsPage() {
     useState(false);
   const [historyForm, setHistoryForm] = useState<{
     conditions: string[];
-    allergies: string[];
+    allergies: string;
     surgeries: string[];
     familyHistory?: string;
     lifestyle?: string;
-    currentMedications: string[];
+    currentMedications: string;
     notes?: string;
     conditionsOther?: string;
     allergiesOther?: string;
     surgeriesOther?: string;
-  }>({ conditions: [], allergies: [], surgeries: [], currentMedications: [] });
+  }>({ conditions: [], allergies: "", surgeries: [], currentMedications: "" });
   const [customFields, setCustomFields] = useState<
     Array<{ key: string; value: string }>
   >([{ key: "", value: "" }]);
@@ -759,11 +759,15 @@ export default function DoctorPatientsPage() {
       const mh = patient.medicalHistory || {};
       setHistoryForm({
         conditions: mh.conditions || [],
-        allergies: mh.allergies || [],
+        allergies: Array.isArray(mh.allergies) 
+          ? mh.allergies.join(", ") 
+          : mh.allergies || "",
         surgeries: mh.surgeries || [],
         familyHistory: mh.familyHistory || "",
         lifestyle: mh.lifestyle || "",
-        currentMedications: mh.currentMedications || [],
+        currentMedications: Array.isArray(mh.currentMedications) 
+          ? mh.currentMedications.join(", ") 
+          : mh.currentMedications || "",
         notes: mh.notes || "",
         conditionsOther: mh.conditionsOther || "",
         allergiesOther: mh.allergiesOther || "",
@@ -805,7 +809,10 @@ export default function DoctorPatientsPage() {
       );
       const mergedAllergies = Array.from(
         new Set([
-          ...(historyForm.allergies || []).map((s) => s.trim()).filter(Boolean),
+          ...(historyForm.allergies || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
           ...(historyForm.allergiesOther?.trim()
             ? [historyForm.allergiesOther.trim()]
             : []),
@@ -837,7 +844,8 @@ export default function DoctorPatientsPage() {
           surgeries: mergedSurgeries,
           familyHistory: historyForm.familyHistory,
           lifestyle: historyForm.lifestyle,
-          currentMedications: (historyForm.currentMedications || [])
+          currentMedications: (historyForm.currentMedications || "")
+            .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
           notes: historyForm.notes,
@@ -1985,14 +1993,11 @@ export default function DoctorPatientsPage() {
                       <Input
                         placeholder="Ví dụ: Penicillin, Hải sản..."
                         className="transition-all duration-200 focus:ring-2 focus:ring-emerald-500/20"
-                        value={historyForm.allergies.join(", ")}
+                        value={historyForm.allergies}
                         onChange={(e) =>
                           setHistoryForm((p) => ({
                             ...p,
-                            allergies: e.target.value
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
+                            allergies: e.target.value,
                           }))
                         }
                       />
@@ -2069,14 +2074,11 @@ export default function DoctorPatientsPage() {
                       <Input
                         placeholder="Ví dụ: Aspirin, Metformin..."
                         className="transition-all duration-200 focus:ring-2 focus:ring-blue-500/20"
-                        value={historyForm.currentMedications.join(", ")}
+                        value={historyForm.currentMedications}
                         onChange={(e) =>
                           setHistoryForm((p) => ({
                             ...p,
-                            currentMedications: e.target.value
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
+                            currentMedications: e.target.value,
                           }))
                         }
                       />

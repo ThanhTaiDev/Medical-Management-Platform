@@ -435,7 +435,7 @@ export default function PatientPage() {
     queryKey: ["patient-adherence"],
     queryFn: patientApi.getAdherence,
     enabled: role === "PATIENT" && activeTab === "adherence",
-  });
+  }); 
 
   const handleConfirmIntake = async () => {
     if (!selectedPrescriptionId || !confirmItemId) return;
