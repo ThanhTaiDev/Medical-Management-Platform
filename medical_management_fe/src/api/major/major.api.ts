@@ -5,10 +5,23 @@ export interface MajorDoctor {
   code: string;
   name: string;
   nameEn?: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder: number;
+  _count?: {
+    doctors: number;
+  };
 }
 
 export interface MajorDoctorResponse {
   data: MajorDoctor[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  statusCode: number;
 }
 
 export const majorApi = {
