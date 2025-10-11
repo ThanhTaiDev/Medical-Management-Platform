@@ -2248,7 +2248,6 @@ const DoctorManagement: React.FC = () => {
                                   <option value="">Đang tải...</option>
                                 ) : (
                                   <>
-                                    <option value="">Chọn chuyên khoa</option>
                                     {majorDoctorsData?.data?.map((major) => (
                                       <option key={major.id} value={major.id}>
                                         {major.name}
