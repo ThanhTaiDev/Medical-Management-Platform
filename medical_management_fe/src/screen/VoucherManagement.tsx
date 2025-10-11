@@ -248,7 +248,7 @@ const VoucherManagement: React.FC = () => {
         <form onSubmit={handleVoucherSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tên voucher
+              Tên voucher <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -262,7 +262,7 @@ const VoucherManagement: React.FC = () => {
           {!editingVoucher && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mã voucher
+                Mã voucher <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -276,7 +276,7 @@ const VoucherManagement: React.FC = () => {
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Giảm giá (%)
+              Giảm giá (%) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"

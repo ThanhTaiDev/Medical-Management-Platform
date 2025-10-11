@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Edit, Trash2, AlertTriangle, CheckCircle, XCircle, FileText, Stethoscope } from "lucide-react";
+import { Plus, Search, Edit, Trash2, AlertTriangle, CheckCircle, XCircle, FileText, Stethoscope, Pencil } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { majorApi, MajorDoctor } from "@/api/major/major.api";
 import { createMajorSchema, updateMajorSchema, CreateMajorFormData, UpdateMajorFormData } from "@/schemas/major.schema";
@@ -632,7 +632,7 @@ const MajorManagement: React.FC = () => {
                                 onClick={() => handleOpenEditDialog(major)}
                                 title="Chỉnh sửa"
                               >
-                                <Edit className="h-4 w-4 mr-1.5" />
+                                <Pencil className="h-4 w-4 mr-1.5" />
                                 Sửa
                               </Button>
                               <Button

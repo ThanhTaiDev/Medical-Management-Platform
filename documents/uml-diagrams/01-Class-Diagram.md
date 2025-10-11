@@ -1,6 +1,7 @@
 # UML Class Diagram - Medical Management System
 
 ## Tổng Quan
+
 Sơ đồ lớp UML mô tả cấu trúc các lớp, thuộc tính, phương thức và mối quan hệ giữa chúng trong hệ thống quản lý y tế.
 
 ## Sơ Đồ Lớp
@@ -280,66 +281,80 @@ classDiagram
 ### 1. Core Entities
 
 #### User
+
 - **Mục đích**: Đại diện cho tất cả người dùng trong hệ thống (Admin, Doctor, Patient)
 - **Thuộc tính chính**: id, phoneNumber, password, fullName, role, status
 - **Phương thức**: validateUser(), hashPassword(), comparePassword()
 
 #### Prescription
+
 - **Mục đích**: Đại diện cho đơn thuốc điện tử
 - **Thuộc tính chính**: id, patientId, doctorId, status, startDate, endDate
 - **Phương thức**: createPrescription(), updatePrescription(), cancelPrescription(), getAdherenceRate()
 
 #### PrescriptionItem
+
 - **Mục đích**: Đại diện cho từng thuốc trong đơn thuốc
 - **Thuộc tính chính**: id, prescriptionId, medicationId, dosage, frequencyPerDay, timesOfDay
 
 #### AdherenceLog
+
 - **Mục đích**: Ghi lại lịch sử uống thuốc của bệnh nhân
 - **Thuộc tính chính**: id, prescriptionId, patientId, takenAt, status, amount
 
 #### Alert
+
 - **Mục đích**: Đại diện cho các cảnh báo và thông báo trong hệ thống
 - **Thuộc tính chính**: id, type, message, resolved, createdAt
 
 ### 2. Services
 
 #### AuthService
+
 - **Mục đích**: Xử lý authentication và authorization
 - **Phương thức**: login(), register(), generateToken(), validateToken()
 
 #### PrescriptionService
+
 - **Mục đích**: Quản lý đơn thuốc và tính toán tuân thủ
 - **Phương thức**: createPrescription(), updatePrescription(), calculateAdherenceRate()
 
 #### NotificationService
+
 - **Mục đích**: Gửi thông báo và nhắc nhở
 - **Phương thức**: sendMedicationReminder(), sendLowAdherenceAlert(), scheduleReminder()
 
 #### ReportService
+
 - **Mục đích**: Tạo báo cáo và thống kê
 - **Phương thức**: generateOverviewReport(), generateAdherenceReport(), exportReport()
 
 ### 3. Controllers
 
 #### AuthController
+
 - **Mục đích**: Xử lý HTTP requests cho authentication
 - **Endpoints**: /auth/login, /auth/register, /auth/logout, /auth/me
 
 #### PrescriptionController
+
 - **Mục đích**: Xử lý HTTP requests cho đơn thuốc (Admin)
 - **Endpoints**: /admin/prescriptions/*
 
 #### DoctorPrescriptionController
+
 - **Mục đích**: Xử lý HTTP requests cho đơn thuốc (Doctor)
 - **Endpoints**: /doctor/prescriptions/*
 
 #### PatientPrescriptionController
+
 - **Mục đích**: Xử lý HTTP requests cho đơn thuốc (Patient)
 - **Endpoints**: /patient/prescriptions/*
 
 ### 4. Mối Quan Hệ
 
 #### One-to-Many Relationships
+
 - User → PatientProfile (1:1)
 - User → PatientMedicalHistory (1:1)
 - User → Prescription (1:N) - Doctor creates many prescriptions
@@ -349,6 +364,7 @@ classDiagram
 - Prescription → Alert (1:N)
 
 #### Many-to-One Relationships
+
 - PrescriptionItem → Medication (N:1)
 - AdherenceLog → Prescription (N:1)
 - AdherenceLog → PrescriptionItem (N:1)
@@ -356,26 +372,31 @@ classDiagram
 - Alert → User (N:1)
 
 #### Many-to-Many Relationships
+
 - User ↔ MajorDoctorTable (N:M) - Doctors can belong to multiple specialties
 
 ### 5. Enumerations
 
 #### UserRole
+
 - ADMIN: Quản trị viên
 - DOCTOR: Bác sĩ
 - PATIENT: Bệnh nhân
 
 #### PrescriptionStatus
+
 - ACTIVE: Đang hoạt động
 - COMPLETED: Đã hoàn thành
 - CANCELLED: Đã hủy
 
 #### AdherenceStatus
+
 - TAKEN: Đã uống
 - MISSED: Đã bỏ lỡ
 - SKIPPED: Đã bỏ qua
 
 #### AlertType
+
 - MISSED_DOSE: Bỏ lỡ thuốc
 - LOW_ADHERENCE: Tuân thủ thấp
 - OTHER: Khác

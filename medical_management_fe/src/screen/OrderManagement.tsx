@@ -368,7 +368,7 @@ const OrderManagement: React.FC = () => {
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bệnh nhân
+                  Bệnh nhân <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="userId"
@@ -387,7 +387,7 @@ const OrderManagement: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sản phẩm/Dịch vụ
+                  Sản phẩm/Dịch vụ <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="productServiceId"
@@ -408,7 +408,7 @@ const OrderManagement: React.FC = () => {
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Voucher
+              Voucher <span className="text-red-500">*</span>
             </label>
             <select
               name="voucherId"
@@ -428,7 +428,7 @@ const OrderManagement: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Chọn chuyên gia
+                Chọn chuyên gia <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedMajorDoctor}
@@ -445,7 +445,7 @@ const OrderManagement: React.FC = () => {
             {selectedMajorDoctor && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Lịch hẹn
+                  Lịch hẹn <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="scheduleId"

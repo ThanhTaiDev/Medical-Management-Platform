@@ -654,7 +654,7 @@ const DoctorManagement: React.FC = () => {
                       </DialogHeader>
                       <div className="grid gap-4 py-2">
                         <div className="grid gap-2">
-                          <Label>Họ tên</Label>
+                          <Label>Họ tên <span className="text-red-500">*</span></Label>
                           <Input
                             value={createForm.fullName}
                             onChange={(e) => {
@@ -677,7 +677,7 @@ const DoctorManagement: React.FC = () => {
                           )}
                         </div>
                         <div className="grid gap-2">
-                          <Label>Số điện thoại</Label>
+                          <Label>Số điện thoại <span className="text-red-500">*</span></Label>
                           <Input
                             value={createForm.phoneNumber}
                             onChange={(e) => {
@@ -700,7 +700,7 @@ const DoctorManagement: React.FC = () => {
                           )}
                         </div>
                         <div className="grid gap-2">
-                          <Label>Mật khẩu</Label>
+                          <Label>Mật khẩu <span className="text-red-500">*</span></Label>
                           <Input
                             type="password"
                             value={createForm.password}
@@ -724,7 +724,7 @@ const DoctorManagement: React.FC = () => {
                           )}
                         </div>
                         <div className="grid gap-2">
-                          <Label>Giới tính</Label>
+                          <Label>Giới tính <span className="text-red-500">*</span></Label>
                           <select
                             value={createForm.profile?.gender || ""}
                             onChange={(e) => {
@@ -743,7 +743,6 @@ const DoctorManagement: React.FC = () => {
                             }}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            <option value="">Chọn giới tính</option>
                             <option value="Nam">Nam</option>
                             <option value="Nữ">Nữ</option>
                             <option value="Khác">Khác</option>
@@ -755,7 +754,7 @@ const DoctorManagement: React.FC = () => {
                           )}
                         </div>
                         <div className="grid gap-2">
-                          <Label>Ngày sinh</Label>
+                          <Label>Ngày sinh <span className="text-red-500">*</span></Label>
                           <Input
                             type="date"
                             value={createForm.profile?.birthDate || ""}
@@ -781,7 +780,7 @@ const DoctorManagement: React.FC = () => {
                           )}
                         </div>
                         <div className="grid gap-2">
-                          <Label>Địa chỉ</Label>
+                          <Label>Địa chỉ <span className="text-red-500">*</span></Label>
                           <Input
                             value={createForm.profile?.address || ""}
                             onChange={(e) => {
@@ -851,13 +850,6 @@ const DoctorManagement: React.FC = () => {
                     }
                   }}
                 >
-                  {/* Overlay with blur - only render when dialog is open */}
-                  {openMedDialog && (
-                    <div
-                      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in-0"
-                      aria-hidden="true"
-                    />
-                  )}
                   <DialogTrigger asChild>
                     <Button className="relative bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-primary/20">
                       <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-md opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
@@ -867,7 +859,7 @@ const DoctorManagement: React.FC = () => {
                       </div>
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px] rounded-2xl border border-border/20 shadow-2xl bg-card/95 backdrop-blur-md">
+                  <DialogContent className="sm:max-w-[500px] rounded-2xl border border-border/20 shadow-2xl bg-card">
                     <DialogHeader>
                       <DialogTitle>
                         {editingMedId ? "Sửa thuốc" : "Thêm thuốc"}
@@ -875,7 +867,7 @@ const DoctorManagement: React.FC = () => {
                     </DialogHeader>
                     <div className="grid gap-4 py-2">
                       <div className="grid gap-2">
-                        <Label>Tên thuốc</Label>
+                        <Label>Tên thuốc <span className="text-red-500">*</span></Label>
                         <Input
                           value={medForm.name || ""}
                           onChange={(e) => {
@@ -902,7 +894,7 @@ const DoctorManagement: React.FC = () => {
                         )}
                       </div>
                       <div className="grid gap-2">
-                        <Label>Hàm lượng</Label>
+                        <Label>Hàm lượng <span className="text-red-500">*</span></Label>
                         <Input
                           value={medForm.strength || ""}
                           onChange={(e) => {
@@ -932,7 +924,7 @@ const DoctorManagement: React.FC = () => {
                         )}
                       </div>
                       <div className="grid gap-2">
-                        <Label>Dạng bào chế</Label>
+                        <Label>Dạng bào chế <span className="text-red-500">*</span></Label>
                         <Input
                           value={medForm.form || ""}
                           onChange={(e) => {
@@ -959,7 +951,7 @@ const DoctorManagement: React.FC = () => {
                         )}
                       </div>
                       <div className="grid gap-2">
-                        <Label>Đơn vị</Label>
+                        <Label>Đơn vị <span className="text-red-500">*</span></Label>
                         <Input
                           value={medForm.unit || ""}
                           onChange={(e) => {
@@ -1069,6 +1061,173 @@ const DoctorManagement: React.FC = () => {
                         isLoading={createMed.isPending || updateMed.isPending}
                       >
                         Lưu
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+              {activeTab === "doctors" && role === "ADMIN" && (
+                <Dialog
+                  open={openCreateDoctor}
+                  onOpenChange={(open) => {
+                    setOpenCreateDoctor(open);
+                    if (!open) {
+                      // Reset form and errors when dialog is closed
+                      setCreateDoctorForm({
+                        fullName: "",
+                        phoneNumber: "",
+                        password: "",
+                        majorDoctor: "",
+                      });
+                      setCreateDoctorErrors({
+                        fullName: "",
+                        phoneNumber: "",
+                        password: "",
+                      });
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button className="relative bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-primary/20">
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-md opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Tạo bác sĩ
+                      </div>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Tạo bác sĩ mới</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2">
+                      <div className="grid gap-2">
+                        <Label>Họ tên <span className="text-red-500">*</span></Label>
+                        <Input
+                          value={createDoctorForm.fullName}
+                          onChange={(e) => {
+                            setCreateDoctorForm((s) => ({
+                              ...s,
+                              fullName: e.target.value,
+                            }));
+                            // Clear error when user starts typing
+                            if (createDoctorErrors.fullName) {
+                              setCreateDoctorErrors((prev) => ({
+                                ...prev,
+                                fullName: "",
+                              }));
+                            }
+                          }}
+                          placeholder="BS. Nguyễn Văn A"
+                          className={
+                            createDoctorErrors.fullName
+                              ? "border-red-500 focus:border-red-500"
+                              : ""
+                          }
+                        />
+                        {createDoctorErrors.fullName && (
+                          <p className="text-sm text-red-500 mt-1">
+                            {createDoctorErrors.fullName}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Số điện thoại <span className="text-red-500">*</span></Label>
+                        <Input
+                          value={createDoctorForm.phoneNumber}
+                          onChange={(e) => {
+                            setCreateDoctorForm((s) => ({
+                              ...s,
+                              phoneNumber: e.target.value,
+                            }));
+                            // Clear error when user starts typing
+                            if (createDoctorErrors.phoneNumber) {
+                              setCreateDoctorErrors((prev) => ({
+                                ...prev,
+                                phoneNumber: "",
+                              }));
+                            }
+                          }}
+                          placeholder="09xxxxxxxx"
+                          className={
+                            createDoctorErrors.phoneNumber
+                              ? "border-red-500 focus:border-red-500"
+                              : ""
+                          }
+                        />
+                        {createDoctorErrors.phoneNumber && (
+                          <p className="text-sm text-red-500 mt-1">
+                            {createDoctorErrors.phoneNumber}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Mật khẩu <span className="text-red-500">*</span></Label>
+                        <Input
+                          type="password"
+                          value={createDoctorForm.password}
+                          onChange={(e) => {
+                            setCreateDoctorForm((s) => ({
+                              ...s,
+                              password: e.target.value,
+                            }));
+                            // Clear error when user starts typing
+                            if (createDoctorErrors.password) {
+                              setCreateDoctorErrors((prev) => ({
+                                ...prev,
+                                password: "",
+                              }));
+                            }
+                          }}
+                          placeholder="••••••"
+                          className={
+                            createDoctorErrors.password
+                              ? "border-red-500 focus:border-red-500"
+                              : ""
+                          }
+                        />
+                        {createDoctorErrors.password && (
+                          <p className="text-sm text-red-500 mt-1">
+                            {createDoctorErrors.password}
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Chuyên khoa</Label>
+                        <select
+                          value={createDoctorForm.majorDoctor}
+                          onChange={(e) =>
+                            setCreateDoctorForm((s) => ({
+                              ...s,
+                              majorDoctor: e.target.value,
+                            }))
+                          }
+                          disabled={loadingMajorDoctors}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {loadingMajorDoctors ? (
+                            <option value="">Đang tải...</option>
+                          ) : (
+                            <>
+                              {majorDoctorsData?.data?.map((major) => (
+                                <option key={major.id} value={major.id}>
+                                  {major.name}
+                                </option>
+                              ))}
+                            </>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        onClick={handleCreateDoctor}
+                        disabled={createDoctorMutation.isPending}
+                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+                      >
+                        {createDoctorMutation.isPending
+                          ? "Đang tạo..."
+                          : "Tạo bác sĩ"}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -2107,172 +2266,6 @@ const DoctorManagement: React.FC = () => {
                       />
                     </div>
 
-                    {/* Create Doctor Button */}
-                    {role === "ADMIN" && (
-                      <Dialog
-                        open={openCreateDoctor}
-                        onOpenChange={(open) => {
-                          setOpenCreateDoctor(open);
-                          if (!open) {
-                            // Reset form and errors when dialog is closed
-                            setCreateDoctorForm({
-                              fullName: "",
-                              phoneNumber: "",
-                              password: "",
-                              majorDoctor: "",
-                            });
-                            setCreateDoctorErrors({
-                              fullName: "",
-                              phoneNumber: "",
-                              password: "",
-                            });
-                          }
-                        }}
-                      >
-                        <DialogTrigger asChild>
-                          <Button className="relative bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-primary/20">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tạo bác sĩ
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                          <DialogHeader>
-                            <DialogTitle>Tạo bác sĩ mới</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-2">
-                            <div className="grid gap-2">
-                              <Label>Họ tên</Label>
-                              <Input
-                                value={createDoctorForm.fullName}
-                                onChange={(e) => {
-                                  setCreateDoctorForm((s) => ({
-                                    ...s,
-                                    fullName: e.target.value,
-                                  }));
-                                  // Clear error when user starts typing
-                                  if (createDoctorErrors.fullName) {
-                                    setCreateDoctorErrors((prev) => ({
-                                      ...prev,
-                                      fullName: "",
-                                    }));
-                                  }
-                                }}
-                                placeholder="BS. Nguyễn Văn A"
-                                className={
-                                  createDoctorErrors.fullName
-                                    ? "border-red-500 focus:border-red-500"
-                                    : ""
-                                }
-                              />
-                              {createDoctorErrors.fullName && (
-                                <p className="text-sm text-red-500 mt-1">
-                                  {createDoctorErrors.fullName}
-                                </p>
-                              )}
-                            </div>
-                            <div className="grid gap-2">
-                              <Label>Số điện thoại</Label>
-                              <Input
-                                value={createDoctorForm.phoneNumber}
-                                onChange={(e) => {
-                                  setCreateDoctorForm((s) => ({
-                                    ...s,
-                                    phoneNumber: e.target.value,
-                                  }));
-                                  // Clear error when user starts typing
-                                  if (createDoctorErrors.phoneNumber) {
-                                    setCreateDoctorErrors((prev) => ({
-                                      ...prev,
-                                      phoneNumber: "",
-                                    }));
-                                  }
-                                }}
-                                placeholder="09xxxxxxxx"
-                                className={
-                                  createDoctorErrors.phoneNumber
-                                    ? "border-red-500 focus:border-red-500"
-                                    : ""
-                                }
-                              />
-                              {createDoctorErrors.phoneNumber && (
-                                <p className="text-sm text-red-500 mt-1">
-                                  {createDoctorErrors.phoneNumber}
-                                </p>
-                              )}
-                            </div>
-                            <div className="grid gap-2">
-                              <Label>Mật khẩu</Label>
-                              <Input
-                                type="password"
-                                value={createDoctorForm.password}
-                                onChange={(e) => {
-                                  setCreateDoctorForm((s) => ({
-                                    ...s,
-                                    password: e.target.value,
-                                  }));
-                                  // Clear error when user starts typing
-                                  if (createDoctorErrors.password) {
-                                    setCreateDoctorErrors((prev) => ({
-                                      ...prev,
-                                      password: "",
-                                    }));
-                                  }
-                                }}
-                                placeholder="••••••"
-                                className={
-                                  createDoctorErrors.password
-                                    ? "border-red-500 focus:border-red-500"
-                                    : ""
-                                }
-                              />
-                              {createDoctorErrors.password && (
-                                <p className="text-sm text-red-500 mt-1">
-                                  {createDoctorErrors.password}
-                                </p>
-                              )}
-                            </div>
-                            <div className="grid gap-2">
-                              <Label>Chuyên khoa</Label>
-                              <select
-                                value={createDoctorForm.majorDoctor}
-                                onChange={(e) =>
-                                  setCreateDoctorForm((s) => ({
-                                    ...s,
-                                    majorDoctor: e.target.value,
-                                  }))
-                                }
-                                disabled={loadingMajorDoctors}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                {loadingMajorDoctors ? (
-                                  <option value="">Đang tải...</option>
-                                ) : (
-                                  <>
-                                    {majorDoctorsData?.data?.map((major) => (
-                                      <option key={major.id} value={major.id}>
-                                        {major.name}
-                                      </option>
-                                    ))}
-                                  </>
-                                )}
-                              </select>
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button
-                              onClick={handleCreateDoctor}
-                              disabled={createDoctorMutation.isPending}
-                              className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-                            >
-                              {createDoctorMutation.isPending
-                                ? "Đang tạo..."
-                                : "Tạo bác sĩ"}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    )}
                   </div>
                 </div>
 

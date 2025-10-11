@@ -63,7 +63,7 @@ export default function SignUp() {
                 htmlFor="fullName"
                 className="block text-xs text-gray-500 px-4 pt-3"
               >
-                Full Name
+                Full Name <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center px-4 pb-2">
                 <i className="fas fa-user text-gray-400 mr-2"></i>
@@ -85,7 +85,7 @@ export default function SignUp() {
                 htmlFor="phoneNumber"
                 className="block text-xs text-gray-500 px-4 pt-3"
               >
-                Phone Number
+                Phone Number <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center px-4 pb-2">
                 <i className="fas fa-phone text-gray-400 mr-2"></i>
@@ -107,7 +107,7 @@ export default function SignUp() {
                 htmlFor="password"
                 className="block text-xs text-gray-500 px-4 pt-3"
               >
-                Password
+                Password <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center px-4 pb-2">
                 <i className="fas fa-lock text-gray-400 mr-2"></i>

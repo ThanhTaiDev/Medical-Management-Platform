@@ -236,7 +236,7 @@ export function CreatePatientDialog({ isOpen, onClose, onCreateSuccess, defaultR
                 render={({ field }) => (
                   <FormItem>
                         <div className="flex items-center justify-between">
-                          <FormLabel className="text-sm font-medium">Họ và tên</FormLabel>
+                          <FormLabel className="text-sm font-medium">Họ và tên <span className="text-red-500">*</span></FormLabel>
                       <FormMessage />
                     </div>
                     <FormControl>
@@ -256,7 +256,7 @@ export function CreatePatientDialog({ isOpen, onClose, onCreateSuccess, defaultR
                 render={({ field }) => (
                   <FormItem>
                         <div className="flex items-center justify-between">
-                          <FormLabel className="text-sm font-medium">Số điện thoại</FormLabel>
+                          <FormLabel className="text-sm font-medium">Số điện thoại <span className="text-red-500">*</span></FormLabel>
                       <FormMessage />
                     </div>
                     <FormControl>
@@ -282,7 +282,7 @@ export function CreatePatientDialog({ isOpen, onClose, onCreateSuccess, defaultR
                 render={({ field }) => (
                   <FormItem>
                         <div className="flex items-center justify-between">
-                          <FormLabel className="text-sm font-medium">Mật khẩu</FormLabel>
+                          <FormLabel className="text-sm font-medium">Mật khẩu <span className="text-red-500">*</span></FormLabel>
                       <FormMessage />
                     </div>
                     <FormControl>
@@ -320,7 +320,7 @@ export function CreatePatientDialog({ isOpen, onClose, onCreateSuccess, defaultR
                   render={({ field }) => (
                     <FormItem>
                           <div className="flex items-center justify-between">
-                            <FormLabel className="text-sm font-medium">Loại tài khoản</FormLabel>
+                            <FormLabel className="text-sm font-medium">Loại tài khoản <span className="text-red-500">*</span></FormLabel>
                         <FormMessage />
                       </div>
                       <FormControl>

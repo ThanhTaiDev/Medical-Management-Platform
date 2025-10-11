@@ -196,7 +196,7 @@ const ProductManagement: React.FC = () => {
                 <form onSubmit={handleProductSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Tên dịch vụ
+                            Tên dịch vụ <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
@@ -209,7 +209,7 @@ const ProductManagement: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Mô tả
+                            Mô tả <span className="text-red-500">*</span>
                         </label>
                         <textarea
                             name="description"
@@ -222,7 +222,7 @@ const ProductManagement: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Giá (VNĐ)
+                            Giá (VNĐ) <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="number"
@@ -237,7 +237,7 @@ const ProductManagement: React.FC = () => {
                     {!editingProduct && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Mã dịch vụ
+                                Mã dịch vụ <span className="text-red-500">*</span>
                             </label>
                             <div className="flex space-x-2">
                                 <input
