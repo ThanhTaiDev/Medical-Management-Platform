@@ -40,15 +40,15 @@ export default function Login() {
 
     const phoneRegex = /^0\d{9}$/;
     if (!formData.phoneNumber) {
-      newErrors.phoneNumber = "Phone number is required";
+      newErrors.phoneNumber = "Số điện thoại là bắt buộc";
     } else if (!phoneRegex.test(formData.phoneNumber)) {
-      newErrors.phoneNumber = "Phone number must be 10 digits and start with 0";
+      newErrors.phoneNumber = "Số điện thoại phải có 10 chữ số và bắt đầu bằng 0";
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = "Mật khẩu là bắt buộc";
     } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
     }
 
     setErrors(newErrors);
@@ -58,7 +58,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
-      toast.error("Please fix the errors in the form", {
+      toast.error("Vui lòng sửa các lỗi trong biểu mẫu", {
         duration: 4000,
         position: "top-center",
         style: { background: "#EF4444", color: "#fff" },
@@ -80,7 +80,7 @@ export default function Login() {
       const role = res.user.role;
       const target = role === "DOCTOR" ? "/dashboard/doctor-patients" : role === "PATIENT" ? "/dashboard/patients" : "/dashboard";
 
-      toast.success("Login successful! Redirecting...", {
+      toast.success("Đăng nhập thành công! Đang chuyển hướng...", {
         duration: 800,
         position: "top-center",
         style: { background: "#10B981", color: "#fff" },
@@ -88,7 +88,7 @@ export default function Login() {
 
       setTimeout(() => navigate(target), 600);
     } catch (error: unknown) {
-      const message = (error as any)?.response?.data?.message || "Login failed";
+      const message = (error as any)?.response?.data?.message || "Đăng nhập thất bại";
       toast.error(message, {
         duration: 2500,
         position: "top-center",
@@ -124,27 +124,21 @@ export default function Login() {
           ></div>
 
           <h2 className="text-2xl font-bold text-white relative z-10">
-            Welcome Back
+            Chào Mừng Trở Lại
           </h2>
           <p className="text-blue-100 mt-1 relative z-10">
-            Sign in to your account
+            Đăng nhập vào tài khoản của bạn
           </p>
         </div>
 
         <div className="p-8">
-          <div className="flex items-center my-6">
-            <div className="flex-grow border-t border-gray-300"></div>
-            <span className="mx-4 text-gray-500 text-sm">OR</span>
-            <div className="flex-grow border-t border-gray-300"></div>
-          </div>
-
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="input-field bg-gray-50 border border-gray-300 rounded-lg transition-all duration-300">
               <label
                 htmlFor="phoneNumber"
                 className="block text-xs text-gray-500 px-4 pt-3"
               >
-                Phone Number
+                Số Điện Thoại
               </label>
               <div className="flex items-center px-4 pb-2">
                 <i className="fas fa-phone text-gray-400 mr-2"></i>
@@ -175,7 +169,7 @@ export default function Login() {
                 htmlFor="password"
                 className="block text-xs text-gray-500 px-4 pt-3"
               >
-                Password
+                Mật Khẩu
               </label>
               <div className="flex items-center px-4 pb-2">
                 <i className="fas fa-lock text-gray-400 mr-2"></i>
@@ -203,35 +197,13 @@ export default function Login() {
                 </p>
               )}
             </div>
-
-            <div className="flex items-center justify-between">
-              <a
-                href="#"
-                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-              >
-                Forgot password?
-              </a>
-            </div>
-
             <button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-[1.02] shadow-md"
             >
-              Sign In
+              Đăng Nhập
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Don't have an account?{" "}
-              <a
-                href="/signup"
-                className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
-              >
-                Sign up
-              </a>
-            </p>
-          </div>
         </div>
       </div>
     </section>

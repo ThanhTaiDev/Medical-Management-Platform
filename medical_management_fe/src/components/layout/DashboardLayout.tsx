@@ -175,8 +175,8 @@ const AppSidebar: React.FC<AppSidebarProps> = React.memo(({ userData }) => {
             </div>
           </div>
           <div className="text-center">
-            <h2 className="text-sm font-semibold text-foreground tracking-wide">Medical Management</h2>
-            <p className="text-xs text-muted-foreground/70 mt-0.5">Medical Management</p>
+            <h2 className="text-sm font-semibold text-foreground tracking-wide">Quản lý y khoa</h2>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">Quản lý y khoa</p>
           </div>
         </div>
       </SidebarHeader>
@@ -373,7 +373,7 @@ const DashboardLayout: React.FC = () => {
           </div>
           <div className="flex flex-col items-center">
             <h1 className="font-bold text-xl text-foreground tracking-tight leading-none">
-              <span className="text-primary font-extrabold">Medical Management</span>
+              <span className="text-primary font-extrabold">Quản lý y khoa</span>
             </h1>
             <div className="flex items-center gap-2 mt-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -438,25 +438,6 @@ const DashboardLayout: React.FC = () => {
               {/* Right Section */}
               <div className="flex items-center gap-3">
                 {/* Quick Actions */}
-                <div className="hidden sm:flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 hover:bg-accent/50 rounded-xl transition-colors duration-200 relative group"
-                  >
-                    <Bell className="h-4 w-4" />
-                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full border border-background" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 hover:bg-accent/50 rounded-xl transition-colors duration-200"
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-
                 <div className="h-6 w-px bg-border/40" />
 
                 {/* User Profile */}
@@ -465,7 +446,7 @@ const DashboardLayout: React.FC = () => {
                     {/* User Avatar and Name - Navigate on Click */}
                     <div 
                       className="flex items-center gap-3 cursor-pointer group hover:bg-accent/50 rounded-xl p-2 transition-colors duration-200"
-                      onClick={() => {
+                      onClick={() => {  
                         const role = userData?.data.role;
                         if (role === 'DOCTOR') {
                           navigate('/dashboard/doctor-info');

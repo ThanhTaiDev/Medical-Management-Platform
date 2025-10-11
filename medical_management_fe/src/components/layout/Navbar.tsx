@@ -47,7 +47,7 @@ const Navbar: React.FC = () => {
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary/70 flex items-center justify-center">
               <span className="text-white font-bold text-xs">M</span>
             </div>
-            <span className="font-semibold text-lg tracking-tight">Medical Management</span>
+            <span className="font-semibold text-lg tracking-tight">Quản lý y khoa</span>
           </Link>
 
           {/* Desktop Navigation */}

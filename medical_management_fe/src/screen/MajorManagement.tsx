@@ -709,7 +709,7 @@ const MajorManagement: React.FC = () => {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="create-code">Mã chuyên khoa *</Label>
+                <Label htmlFor="create-code">Mã chuyên khoa <span className="text-red-500">*</span></Label>
                 <Input
                   id="create-code"
                   placeholder="VD: TIM_MACH"
@@ -747,7 +747,7 @@ const MajorManagement: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="create-name">Tên chuyên khoa *</Label>
+              <Label htmlFor="create-name">Tên chuyên khoa <span className="text-red-500">*</span></Label>
               <Input
                 id="create-name"
                 placeholder="VD: Tim mạch"
@@ -853,7 +853,7 @@ const MajorManagement: React.FC = () => {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-code">Mã chuyên khoa *</Label>
+                <Label htmlFor="edit-code">Mã chuyên khoa <span className="text-red-500">*</span></Label>
                 <Input
                   id="edit-code"
                   placeholder="VD: TIM_MACH"
@@ -891,7 +891,7 @@ const MajorManagement: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Tên chuyên khoa *</Label>
+              <Label htmlFor="edit-name">Tên chuyên khoa <span className="text-red-500">*</span></Label>
               <Input
                 id="edit-name"
                 placeholder="VD: Tim mạch"

@@ -6,7 +6,7 @@ const AppLayout: React.FC = () => {
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       <header className="bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-md transition-colors duration-300">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="text-xl font-bold transition-colors duration-300">Medical Management</div>
+          <div className="text-xl font-bold transition-colors duration-300">Quản lý y khoa</div>
           <nav>
             <ul className="flex space-x-6">
               <li>
