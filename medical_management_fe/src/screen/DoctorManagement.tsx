@@ -1556,7 +1556,7 @@ const DoctorManagement: React.FC = () => {
                       disabled={patientPage === 1}
                       className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 hover:text-primary hover:shadow-md hover:shadow-primary/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      ← Trước
+                      Trước
                     </Button>
                     <Button
                       variant="outline"
@@ -1567,7 +1567,7 @@ const DoctorManagement: React.FC = () => {
                       }
                       className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 hover:text-primary hover:shadow-md hover:shadow-primary/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Sau →
+                      Sau
                     </Button>
                   </div>
                 </div>
@@ -2210,7 +2210,7 @@ const DoctorManagement: React.FC = () => {
                           disabled={medPage === 1}
                           className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 hover:text-primary hover:shadow-md hover:shadow-primary/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          ← Trước
+                          Trước
                         </Button>
                         <Button
                           variant="outline"
@@ -2221,7 +2221,7 @@ const DoctorManagement: React.FC = () => {
                           }
                           className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 hover:text-primary hover:shadow-md hover:shadow-primary/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Sau →
+                          Sau
                         </Button>
                       </div>
                     </div>
