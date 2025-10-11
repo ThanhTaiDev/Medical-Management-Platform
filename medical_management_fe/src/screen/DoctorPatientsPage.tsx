@@ -240,7 +240,7 @@ export default function DoctorPatientsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["doctor-patients", page, limit, debouncedSearch],
     queryFn: () =>
-      DoctorApi.listPatients({ page, limit, q: debouncedSearch }),
+      patientApi.getPatientsForDoctor({ page, limit, search: debouncedSearch }),
   });
 
   // Mutation for updating basic patient info
@@ -807,6 +807,7 @@ export default function DoctorPatientsPage() {
   };
 
   const patients = (data as any)?.data ?? [];
+  
   const pagination = (data as any)?.pagination || {
     total: (data as any)?.total || 0,
     currentPage: page,
@@ -959,9 +960,6 @@ export default function DoctorPatientsPage() {
             <h1 className="text-2xl font-bold tracking-tight">
               Bệnh nhân đang điều trị
             </h1>
-            <p className="text-muted-foreground">
-              Quản lý bệnh nhân có đơn thuốc đang hoạt động
-            </p>
           </div>
           <div className="flex items-center gap-2">
             {/* Search Input with enhanced UI */}
@@ -1034,9 +1032,6 @@ export default function DoctorPatientsPage() {
                   <Search className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-blue-800 dark:text-blue-200">
                     Kết quả tìm kiếm cho: <strong>"{debouncedSearch}"</strong>
-                  </span>
-                  <span className="text-blue-600 dark:text-blue-400">
-                    ({pagination?.total || 0} bệnh nhân)
                   </span>
                 </div>
               </div>
@@ -1263,19 +1258,19 @@ export default function DoctorPatientsPage() {
               <div className="text-sm text-muted-foreground">
                 {debouncedSearch ? (
                   <>
-                    Tìm thấy <strong>{pagination?.total || 0}</strong> bệnh nhân
-                    {pagination?.totalPages && pagination.totalPages > 1 && (
+                    Tìm thấy <strong>{pagination?.total ?? 0}</strong> bệnh nhân
+                    {(pagination?.totalPages ?? 0) > 1 && (
                       <>
                         {" "}
-                        — Trang {pagination?.currentPage} /{" "}
-                        {pagination?.totalPages}
+                        — Trang {pagination?.currentPage ?? 1} /{" "}
+                        {pagination?.totalPages ?? 1}
                       </>
                     )}
                   </>
                 ) : (
                   <>
-                    Trang {pagination?.currentPage} / {pagination?.totalPages} —
-                    Tổng {pagination?.total} bệnh nhân đang điều trị
+                    Trang {pagination?.currentPage ?? 1} / {pagination?.totalPages ?? 1} —
+                    Tổng {pagination?.total ?? 0} bệnh nhân đang điều trị
                   </>
                 )}
               </div>
