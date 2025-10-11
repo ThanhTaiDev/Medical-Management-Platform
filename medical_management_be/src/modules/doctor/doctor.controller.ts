@@ -44,7 +44,7 @@ export class DoctorController {
     });
   }
 
-  // Hồ sơ bệnh nhân
+  // Hồ sơ bệnh nhân - chỉ lấy bệnh nhân có đơn thuốc ACTIVE
   @Get('patients')
   async listPatients(
     @UserInfo() user: IUserFromToken,
@@ -56,6 +56,25 @@ export class DoctorController {
   ) {
     this.ensureDoctor(user);
     return this.doctorService.listPatients(user.id, q, {
+      page: page ? parseInt(page) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
+      sortBy,
+      sortOrder
+    });
+  }
+
+  // Tất cả bệnh nhân của doctor (bao gồm cả những người chưa có đơn thuốc)
+  @Get('patients/all')
+  async listAllPatients(
+    @UserInfo() user: IUserFromToken,
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc'
+  ) {
+    this.ensureDoctor(user);
+    return this.doctorService.listAllPatients(user.id, q, {
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
       sortBy,

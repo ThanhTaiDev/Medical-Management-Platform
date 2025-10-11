@@ -130,7 +130,11 @@ export function CreatePatientDialog({ isOpen, onClose, onCreateSuccess, defaultR
         address: info?.profile?.address,
         medicalHistory: info?.medicalHistory
       });
+      // Invalidate all patient-related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor-patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-search"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-get-all"] });
       toast.success("Tạo bệnh nhân thành công");
       // Move to history step
       setIsHistoryStep(true)
@@ -177,6 +181,13 @@ export function CreatePatientDialog({ isOpen, onClose, onCreateSuccess, defaultR
         notes: historyForm.notes,
         extras
       })
+      
+      // Invalidate all patient-related queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor-patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-search"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-get-all"] });
+      
       toast.success('Lưu tiền sử bệnh án thành công')
     } catch (error) {
       console.error('Error saving medical history:', error);

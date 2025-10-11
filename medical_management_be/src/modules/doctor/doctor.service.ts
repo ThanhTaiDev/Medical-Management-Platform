@@ -138,6 +138,54 @@ export class DoctorService {
     return { data: items, total, page, limit };
   }
 
+  // Lấy tất cả bệnh nhân của doctor (bao gồm cả những người chưa có đơn thuốc)
+  async listAllPatients(
+    doctorId: string,
+    q?: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }
+  ) {
+    const where: any = {
+      role: 'PATIENT',
+      deletedAt: null,
+      createdBy: doctorId, // Lấy tất cả bệnh nhân được tạo bởi doctor này
+      ...(q ? { fullName: { contains: q, mode: 'insensitive' } } : {})
+    };
+    
+    const page = params?.page && params.page > 0 ? params.page : 1;
+    const limit = params?.limit && params.limit > 0 ? params.limit : 20;
+    const orderByField = params?.sortBy || 'createdAt';
+    const orderDir = params?.sortOrder || 'desc';
+    
+    const [items, total] = await Promise.all([
+      this.databaseService.client.user.findMany({
+        where,
+        include: { 
+          profile: true,
+          medicalHistory: true,
+          createdByUser: {
+            select: {
+              id: true,
+              fullName: true,
+              majorDoctor: true,
+              role: true
+            }
+          }
+        },
+        orderBy: { [orderByField]: orderDir },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      this.databaseService.client.user.count({ where })
+    ]);
+    
+    return { data: items, total, page, limit };
+  }
+
   async getPatient(id: string) {
     const user = await this.databaseService.client.user.findUnique({
       where: { id },

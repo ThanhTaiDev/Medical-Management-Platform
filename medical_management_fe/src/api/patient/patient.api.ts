@@ -70,56 +70,45 @@ export const patientApi = {
     async getPatientsForDoctor(params?: IPaginationQuery): Promise<IGetPatientPaginationResponse> {
         const { page = 1, limit = 10, search } = params || {};
         
-        // Sử dụng API active patients để chỉ lấy bệnh nhân đang điều trị
-        const res = await axiosInstance.get('/doctor/overview/active-patients', {
-            params: { page, limit }
+        // Sử dụng API mới để lấy tất cả bệnh nhân của doctor (bao gồm cả những người chưa có đơn thuốc)
+        const res = await axiosInstance.get('/doctor/patients/all', {
+            params: { page, limit, q: search }
         });
-        const payload = res.data?.data || res.data;
-        const items = payload?.items ?? [];
+        const payload = res.data;
+        const items = payload?.data ?? [];
+        const total = payload?.total ?? 0;
         const currentPage = payload?.page ?? page;
         const perPage = payload?.limit ?? limit;
         
         // Transform backend data structure to match frontend expectations
         const transformedItems = items.map((item: any) => ({
-            id: item.patientId,
-            fullName: item.patientName,
+            id: item.id,
+            fullName: item.fullName,
             phoneNumber: item.phoneNumber,
-            status: 'ACTIVE', // Active patients are always ACTIVE
+            status: item.status || 'ACTIVE',
             role: 'PATIENT',
-            createdAt: new Date().toISOString(), // Default value
-            hasMedications: item.hasMedications, // Include medication status
-            totalReminderCount: item.totalReminderCount || 0, // Include reminder count
-            createdBy: item.doctorId,
-            createdByUser: {
-                id: item.doctorId,
-                fullName: item.doctorName,
-                role: 'DOCTOR'
-            },
-            userInfo: null, // Will be populated when needed
-            profile: null, // Will be populated when needed
-            medicalHistory: null, // Will be populated when needed
-            adherence: item.adherence // Include adherence data
+            createdAt: item.createdAt,
+            hasMedications: false, // Will be updated based on prescription data
+            totalReminderCount: 0, // Will be updated based on reminder data
+            createdBy: item.createdBy,
+            createdByUser: item.createdByUser,
+            userInfo: item.userInfo,
+            profile: item.profile,
+            medicalHistory: item.medicalHistory,
+            adherence: null // Will be populated when needed
         }));
         
-        // Filter by search if provided
-        const filteredItems = search 
-            ? transformedItems.filter((item: any) => 
-                item.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-                item.phoneNumber?.includes(search)
-              )
-            : transformedItems;
-        
         return {
-            data: filteredItems,
+            data: transformedItems,
             pagination: {
-                total: filteredItems.length,
+                total,
                 limit: perPage,
                 currentPage,
-                totalPages: Math.ceil((filteredItems.length || 0) / (perPage || 1)),
-                hasNextPage: currentPage < Math.ceil((filteredItems.length || 0) / (perPage || 1)),
+                totalPages: Math.ceil(total / perPage),
+                hasNextPage: currentPage < Math.ceil(total / perPage),
                 hasPrevPage: currentPage > 1
             },
-            statusCode: res.data?.statusCode ?? 200
+            statusCode: res.status || 200
         } as unknown as IGetPatientPaginationResponse;
     },
 
