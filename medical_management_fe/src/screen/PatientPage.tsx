@@ -527,11 +527,11 @@ export default function PatientPage() {
     console.log("Is within time slot:", isWithinTime);
 
     if (!isWithinTime) {
-      console.log("Showing late medication dialog");
-      // Show dialog warning about taking medication late
-      setLateMedicationDialog({
-        open: true,
-        reminder: reminder,
+      console.log("Block late confirmation strictly");
+      toast.error("Đã quá khung giờ 30 phút, không thể xác nhận.", {
+        duration: 4000,
+        position: "top-center",
+        style: { background: "#F59E0B", color: "#fff" },
       });
       return;
     }
@@ -626,6 +626,17 @@ export default function PatientPage() {
     console.log("=== MARK MISSED DEBUG ===");
     console.log("Reminder:", reminder);
     console.log("Reminder time:", reminder.time);
+
+    // Block marking missed if it's before the time slot
+    const isBeforeTime = isBeforeTimeSlot(reminder.time);
+    if (isBeforeTime) {
+      toast.error("Chưa tới giờ uống, không thể đánh dấu bỏ lỡ.", {
+        duration: 4000,
+        position: "top-center",
+        style: { background: "#EF4444", color: "#fff" },
+      });
+      return;
+    }
 
     // Show dialog reminder to take medication regularly
     setMissedMedicationDialog({
@@ -1958,13 +1969,17 @@ export default function PatientPage() {
                     {sortedReminders.map((r: any, idx: number) => (
                       <Card
                         key={idx}
-                        className="border-border/20 hover:shadow-md transition-all duration-200"
+                        className={`${(r.status === "PENDING" && isToday && isWithinTimeSlot(r.time)) ? "border-green-400 ring-2 ring-green-200" : "border-border/20"} hover:shadow-md transition-all duration-200`}
                       >
                         <CardContent className="p-4">
                           <div className="flex items-start gap-4">
                             {/* Time Badge */}
                             <div className="shrink-0">
-                              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex flex-col items-center justify-center">
+                              <div className={`w-16 h-16 rounded-xl text-white flex flex-col items-center justify-center ${
+                                (r.status === "PENDING" && isToday && isWithinTimeSlot(r.time))
+                                  ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                                  : "bg-gradient-to-br from-blue-500 to-blue-600"
+                              }`}>
                                 <div className="text-lg font-bold">
                                   {r.time?.slice?.(0, 5) || "--:--"}
                                 </div>
@@ -1988,6 +2003,11 @@ export default function PatientPage() {
                                     >
                                       {r.dosage}
                                     </Badge>
+                                    {(r.status === "PENDING" && isToday && isWithinTimeSlot(r.time)) && (
+                                      <Badge className="text-xs bg-emerald-100 text-emerald-700">
+                                        Đang trong khung giờ
+                                      </Badge>
+                                    )}
                                     <Badge
                                       variant="outline"
                                       className="text-xs"
@@ -2057,7 +2077,9 @@ export default function PatientPage() {
                                     onClick={() =>
                                       handleConfirmIntakeFromReminder(r)
                                     }
-                                    disabled={loadingActions[`confirm-${r.id}`]}
+                                    disabled={
+                                      loadingActions[`confirm-${r.id}`] || !isWithinTimeSlot(r.time)
+                                    }
                                   >
                                     {loadingActions[`confirm-${r.id}`] ? (
                                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -2073,7 +2095,9 @@ export default function PatientPage() {
                                     onClick={() =>
                                       handleMarkMissedFromReminder(r)
                                     }
-                                    disabled={loadingActions[`missed-${r.id}`]}
+                                    disabled={
+                                      loadingActions[`missed-${r.id}`] || isBeforeTimeSlot(r.time)
+                                    }
                                   >
                                     {loadingActions[`missed-${r.id}`] ? (
                                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-700 mr-2"></div>
