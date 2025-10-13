@@ -153,6 +153,24 @@ export class PatientService {
           let status: 'PENDING' | 'TAKEN' | 'MISSED' | 'SKIPPED' = 'PENDING';
           if (relevantLog) {
             status = relevantLog.status as 'TAKEN' | 'MISSED' | 'SKIPPED';
+          } else {
+            // Chỉ đánh dấu MISSED cho ngày hôm nay, không cho ngày quá khứ
+            // Ngày quá khứ sẽ được xử lý bởi cron job
+            const today = new Date().toISOString().slice(0, 10);
+            if (reminderDate === today) {
+              const now = new Date();
+              const reminderDateTime = new Date(`${reminderDate}T${t}:00`);
+              
+              // Nếu thời gian uống thuốc đã qua (quá 30 phút), đánh dấu là MISSED
+              const timeDiff = now.getTime() - reminderDateTime.getTime();
+              const thirtyMinutesInMs = 30 * 60 * 1000;
+              
+              if (timeDiff > thirtyMinutesInMs) {
+                status = 'MISSED';
+              }
+            }
+            // Đối với ngày quá khứ mà không có log, giữ nguyên PENDING
+            // Cron job sẽ xử lý và tạo AdherenceLog với status MISSED
           }
 
           reminders.push({
