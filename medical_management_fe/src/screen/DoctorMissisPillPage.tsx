@@ -537,19 +537,19 @@ const DoctorMissisPillPage: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-center py-4">
                         <div className="flex flex-col gap-1 items-center">
-                          {row.alerts.missedDose > 0 && (
+                          {(row.alerts?.missedDose || 0) > 0 && (
                             <Badge className="bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border-red-300 text-xs px-2 py-1 font-medium">
-                              Bỏ lỡ: {row.alerts.missedDose}
+                              Bỏ lỡ: {row.alerts?.missedDose || 0}
                             </Badge>
                           )}
-                          {row.alerts.lowAdherence > 0 && (
+                          {(row.alerts?.lowAdherence || 0) > 0 && (
                             <Badge className="bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 border-amber-300 text-xs px-2 py-1 font-medium">
-                              Tuân thủ thấp: {row.alerts.lowAdherence}
+                              Tuân thủ thấp: {row.alerts?.lowAdherence || 0}
                             </Badge>
                           )}
-                          {row.alerts.other > 0 && (
+                          {(row.alerts?.other || 0) > 0 && (
                             <Badge className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border-blue-300 text-xs px-2 py-1 font-medium">
-                              Khác: {row.alerts.other}
+                              Khác: {row.alerts?.other || 0}
                             </Badge>
                           )}
                           {row.totalAlerts === 0 && (

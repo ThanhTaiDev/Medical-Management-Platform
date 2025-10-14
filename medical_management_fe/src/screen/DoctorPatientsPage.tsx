@@ -1728,7 +1728,7 @@ export default function DoctorPatientsPage() {
                                 ) : medications?.items?.length > 0 ? (
                                   medications.items.map((med: any) => (
                                     <SelectItem key={med.id} value={med.id}>
-                                      {med.name} - {med.strength} {med.unit}
+                                      {med?.name || 'N/A'} - {med?.strength || 'N/A'} {med?.unit || 'N/A'}
                                     </SelectItem>
                                   ))
                                 ) : (
@@ -2060,9 +2060,9 @@ export default function DoctorPatientsPage() {
                                   key={idx}
                                   className="text-sm text-muted-foreground bg-muted/20 p-2 rounded"
                                 >
-                                  <strong>{item.medication?.name}</strong> -{" "}
-                                  {item.dosage} -{item.frequencyPerDay} lần/ngày
-                                  - {item.durationDays} ngày
+                                  <strong>{item.medication?.name || 'N/A'}</strong> -{" "}
+                                  {item.dosage || 'N/A'} -{item.frequencyPerDay || 0} lần/ngày
+                                  - {item.durationDays || 0} ngày
                                   {item.instructions && (
                                     <div className="text-xs mt-1 text-muted-foreground/80">
                                       <strong>HD:</strong> {item.instructions}
@@ -2531,7 +2531,7 @@ export default function DoctorPatientsPage() {
                               Tần suất
                             </label>
                             <p className="text-sm">
-                              {item.frequencyPerDay} lần/ngày
+                              {item.frequencyPerDay || 0} lần/ngày
                             </p>
                           </div>
                           <div>
@@ -2539,14 +2539,14 @@ export default function DoctorPatientsPage() {
                               Thời gian uống
                             </label>
                             <p className="text-sm">
-                              {item.timesOfDay?.join(", ") || "Chưa xác định"}
+                              {Array.isArray(item.timesOfDay) ? item.timesOfDay.join(", ") : "Chưa xác định"}
                             </p>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
                               Số ngày
                             </label>
-                            <p className="text-sm">{item.durationDays} ngày</p>
+                            <p className="text-sm">{item.durationDays || 0} ngày</p>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
@@ -2611,7 +2611,7 @@ export default function DoctorPatientsPage() {
                                   </p>
                                   {log.amount && (
                                     <p className="text-xs text-muted-foreground">
-                                      Liều lượng: {log.amount}
+                                      Liều lượng: {String(log.amount)}
                                     </p>
                                   )}
                                 </div>

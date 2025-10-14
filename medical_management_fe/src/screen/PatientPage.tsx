@@ -1617,26 +1617,26 @@ export default function PatientPage() {
                                                 variant="outline"
                                                 className="text-xs"
                                               >
-                                                {item.dosage}
+                                                {item.dosage || 'N/A'}
                                               </Badge>
                                               <Badge
                                                 variant="outline"
                                                 className="text-xs bg-emerald-50 text-emerald-700"
                                               >
-                                                {item.frequencyPerDay} lần/ngày
+                                                {item.frequencyPerDay || 0} lần/ngày
                                               </Badge>
                                               <Badge
                                                 variant="outline"
                                                 className="text-xs bg-blue-50 text-blue-700"
                                               >
-                                                {item.durationDays} ngày
+                                                {item.durationDays || 0} ngày
                                               </Badge>
                                               {item.route && (
                                                 <Badge
                                                   variant="outline"
                                                   className="text-xs bg-zinc-50 text-zinc-700"
                                                 >
-                                                  {item.route}
+                                                  {item.route || 'N/A'}
                                                 </Badge>
                                               )}
                                             </div>
