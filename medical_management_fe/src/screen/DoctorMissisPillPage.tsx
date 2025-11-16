@@ -50,18 +50,37 @@ const DoctorMissisPillPage: React.FC = () => {
   const [sinceDays, setSinceDays] = useState<number>(90);
   const [search, setSearch] = useState<string>("");
 
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  const token = localStorage.getItem("accessToken");
+  
   // WebSocket connection
-  const token = localStorage.getItem("token"); // Lấy token từ localStorage
-  const { isConnected, joinRoom } = useWebSocket(token || undefined);
-
+  const wsToken = localStorage.getItem("token"); // Lấy token từ localStorage
+  const { isConnected, joinRoom } = useWebSocket(wsToken || undefined);
+  
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["doctor-adherence-status", sinceDays],
     queryFn: () => DoctorApi.listPatientsWithAdherenceAndAlerts(sinceDays),
+    enabled: !!token,
+    retry: false,
     staleTime: 10_000, // Giảm staleTime xuống 10 giây để cập nhật nhanh hơn
-    refetchInterval: 30_000, // Tự động refetch mỗi 30 giây
-    refetchIntervalInBackground: true, // Tiếp tục refetch khi tab không active
-    refetchOnWindowFocus: true, // Refetch khi user focus lại tab
+    refetchInterval: token ? 30_000 : false, // Tự động refetch mỗi 30 giây nếu có token
+    refetchIntervalInBackground: !!token, // Tiếp tục refetch khi tab không active nếu có token
+    refetchOnWindowFocus: !!token, // Refetch khi user focus lại tab nếu có token
   });
+  
+  // Mock adherence data when no token (bypass mode) - Only 1 for Figma design
+  const mockAdherenceData = !token ? {
+    items: [{
+      id: "mock-patient-1",
+      fullName: "Nguyễn Văn A",
+      phoneNumber: "0902000001",
+      todayStatus: "COMPLIANT",
+      adherenceRate: 0.92,
+      totalAlerts: 0,
+      lastMedicationTime: new Date().toISOString(),
+    }],
+    total: 1,
+  } : null;
 
   // Listen for WebSocket events và auto-refresh data
   useEffect(() => {
@@ -141,7 +160,7 @@ const DoctorMissisPillPage: React.FC = () => {
   });
 
   const filteredItems = useMemo(() => {
-    const items = data?.items ?? [];
+    const items = (!token && mockAdherenceData) ? mockAdherenceData.items : (data?.items ?? []);
     if (!search.trim()) return items;
     const q = search.trim().toLowerCase();
     return items.filter(
@@ -149,7 +168,7 @@ const DoctorMissisPillPage: React.FC = () => {
         x.fullName.toLowerCase().includes(q) ||
         x.phoneNumber?.toLowerCase().includes(q)
     );
-  }, [data?.items, search]);
+  }, [data?.items, search, token, mockAdherenceData]);
 
   const getInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -169,7 +188,7 @@ const DoctorMissisPillPage: React.FC = () => {
 
   // Tính toán thống kê tổng quan
   const summaryStats = useMemo(() => {
-    const items = data?.items ?? [];
+    const items = (!token && mockAdherenceData) ? mockAdherenceData.items : (data?.items ?? []);
     return {
       total: items.length,
       compliant: items.filter((x) => x.todayStatus === "COMPLIANT").length,
@@ -177,7 +196,7 @@ const DoctorMissisPillPage: React.FC = () => {
       missed: items.filter((x) => x.todayStatus === "MISSED").length,
       withAlerts: items.filter((x) => x.totalAlerts > 0).length,
     };
-  }, [data?.items]);
+  }, [data?.items, token, mockAdherenceData]);
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto w-full space-y-6">

@@ -73,6 +73,9 @@ const MajorManagement: React.FC = () => {
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  const token = localStorage.getItem("accessToken");
+  
   // Query để lấy danh sách chuyên khoa (không filter)
   const { data: majorsData, isLoading, error, refetch } = useQuery({
     queryKey: ['major-doctors'],
@@ -80,7 +83,32 @@ const MajorManagement: React.FC = () => {
       page: 1,
       limit: 100, // Lấy tất cả để filter trên frontend
     }),
+    enabled: !!token,
+    retry: false,
   });
+  
+  // Mock major data when no token (bypass mode) - Only 1 for Figma design
+  const mockMajorData = !token ? {
+    data: [{
+      id: "mock-major-1",
+      code: "DA_LIEU",
+      name: "Da liễu",
+      nameEn: "Dermatology",
+      description: "Chuyên khoa da liễu",
+      isActive: true,
+      sortOrder: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }],
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      total: 1,
+      limit: 100,
+      hasNextPage: false,
+      hasPrevPage: false,
+    },
+  } : null;
 
   // Mutation để tạo chuyên khoa
   const createMajorMutation = useMutation({
@@ -197,9 +225,10 @@ const MajorManagement: React.FC = () => {
 
   // Frontend filtering logic
   const getFilteredMajors = () => {
-    if (!majorsData?.data) return [];
+    const majors = (!token && mockMajorData) ? mockMajorData.data : (majorsData?.data || []);
+    if (!majors || majors.length === 0) return [];
     
-    let filtered = majorsData.data;
+    let filtered = majors;
     
     // Filter by search term
     if (searchTerm.trim()) {

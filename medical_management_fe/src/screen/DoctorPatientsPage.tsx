@@ -232,11 +232,37 @@ export default function DoctorPatientsPage() {
     },
   });
 
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  const token = localStorage.getItem("accessToken");
+  
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["doctor-patients", page, limit, debouncedSearch],
     queryFn: () =>
       patientApi.getPatientsForDoctor({ page, limit, search: debouncedSearch }),
+    enabled: !!token,
+    retry: false,
   });
+  
+  // Mock patient data when no token (bypass mode) - Only 1 for Figma design
+  const mockPatientData = !token ? {
+    data: {
+      items: [{
+        id: "mock-patient-1",
+        fullName: "Nguyễn Văn A",
+        phoneNumber: "0902000001",
+        profile: {
+          gender: "MALE",
+          birthDate: "1990-06-16",
+          address: "Số 59 Đường ABC, Q.3, TP.HCM",
+        },
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+      }],
+      total: 1,
+      page: 1,
+      limit: limit,
+    },
+  } : null;
 
   // Mutation for updating basic patient info
   const updateBasicInfoMutation = useMutation({
@@ -812,9 +838,15 @@ export default function DoctorPatientsPage() {
     return null;
   };
 
-  const patients = (data as any)?.data ?? [];
+  const patients = (!token && mockPatientData) ? mockPatientData.data.items : ((data as any)?.data?.items || (data as any)?.data || []);
   
-  const pagination = (data as any)?.pagination || {
+  const pagination = (!token && mockPatientData) ? {
+    total: mockPatientData.data.total,
+    currentPage: mockPatientData.data.page,
+    totalPages: Math.ceil(mockPatientData.data.total / mockPatientData.data.limit),
+    hasNextPage: false,
+    hasPrevPage: false,
+  } : ((data as any)?.pagination || {
     total: (data as any)?.total || 0,
     currentPage: page,
     totalPages: Math.ceil(((data as any)?.total || 0) / limit),
@@ -1013,14 +1045,14 @@ export default function DoctorPatientsPage() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading && token ? (
           <div className="flex items-center justify-center h-40 text-muted-foreground">
             <div className="flex items-center gap-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               <span>Đang tải danh sách bệnh nhân...</span>
             </div>
           </div>
-        ) : isError ? (
+        ) : (isError && token) ? (
           <div className="flex items-center justify-center h-40 text-red-500">
             <div className="text-center">
               <p className="font-medium">Không thể tải danh sách bệnh nhân</p>

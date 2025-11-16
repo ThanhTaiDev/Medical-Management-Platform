@@ -13,19 +13,40 @@ export default function DoctorMedicationsPage() {
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(10);
 
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  const token = localStorage.getItem("accessToken");
+  
   // Query để lấy danh sách thuốc
   const { data, isLoading, error } = useQuery({
     queryKey: ["medications", { page, limit }],
     queryFn: () => MedicationsApi.list({ page, limit }),
-    retry: 1,
+    enabled: !!token,
+    retry: false,
   });
+  
+  // Mock medication data when no token (bypass mode) - Only 1 for Figma design
+  const mockMedicationData = !token ? {
+    items: [{
+      id: "mock-med-1",
+      name: "Paracetamol",
+      strength: "500mg",
+      form: "tablet",
+      unit: "viên",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    }],
+    total: 1,
+    page: 1,
+    limit: limit,
+  } : null;
 
   // Xử lý dữ liệu từ API
   const items = React.useMemo(() => {
-    if (!data) return [];
+    const listData = (!token && mockMedicationData) ? mockMedicationData : data;
+    if (!listData) return [];
     
     // API trả về { items: [...], total: number, page: number, limit: number }
-    const list = data?.items || [];
+    const list = listData?.items || [];
     if (!Array.isArray(list)) return [];
     
     // Lọc theo search query
@@ -36,9 +57,9 @@ export default function DoctorMedicationsPage() {
         .filter(Boolean)
         .some((v: string) => String(v).toLowerCase().includes(qLower))
     );
-  }, [data, q]);
+  }, [data, q, token, mockMedicationData]);
 
-  const total = data?.total || 0;
+  const total = (!token && mockMedicationData) ? mockMedicationData.total : (data?.total || 0);
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (

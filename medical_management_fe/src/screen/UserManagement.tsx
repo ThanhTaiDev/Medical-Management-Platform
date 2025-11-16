@@ -19,6 +19,9 @@ const UserManagement: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  const token = localStorage.getItem("accessToken");
+  
   const { data, isLoading, isError, refetch } = useQuery<UserListResponse>({
     queryKey: ["users", page, limit, roleFilter, debouncedSearchQuery],
     queryFn: () => {
@@ -31,8 +34,35 @@ const UserManagement: React.FC = () => {
       console.log('🔍 Search params:', params);
       return userApi.getUsers(params);
     },
+    enabled: !!token, // Only fetch if token exists
+    retry: false,
     placeholderData: keepPreviousData,
   });
+
+  // Mock data when no token (bypass mode) - Only 1 for Figma design
+  const mockUser: User = {
+    id: "mock-user-1",
+    phoneNumber: "0901000001",
+    fullName: "Nguyễn Văn A",
+    role: "ADMIN",
+    status: "ACTIVE",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    deletedAt: null,
+  };
+  
+  const mockData: UserListResponse | null = !token ? {
+    data: [mockUser],
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      total: 1,
+      limit: 12,
+      hasNextPage: false,
+      hasPrevPage: false,
+    },
+    statusCode: 200,
+  } : null;
 
   const { data: userDetail, isLoading: isLoadingDetail, isError: isErrorDetail } = useQuery<User | null>({
     queryKey: ["admin-user", selectedUserId],
@@ -44,8 +74,8 @@ const UserManagement: React.FC = () => {
     refetch();
   }, [page, limit, roleFilter, debouncedSearchQuery, refetch]);
 
-  const users = data?.data ?? [];
-  const pagination = data?.pagination;
+  const users = (!token && mockData) ? mockData.data : (data?.data ?? []);
+  const pagination = (!token && mockData) ? mockData.pagination : (data?.pagination);
 
   const roleLabel = (role?: User["role"]) =>
     role === "ADMIN" ? "Quản trị" : role === "DOCTOR" ? "Bác sĩ" : "Bệnh nhân";
@@ -172,9 +202,9 @@ const UserManagement: React.FC = () => {
             </div>
           </div>
 
-          {isLoading ? (
+          {isLoading && token ? (
             <div className="flex items-center justify-center h-48 text-muted-foreground">Đang tải...</div>
-          ) : isError ? (
+          ) : (isError && token) ? (
             <div className="flex items-center justify-center h-48 text-red-500">Không thể tải danh sách người dùng</div>
           ) : users.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center">

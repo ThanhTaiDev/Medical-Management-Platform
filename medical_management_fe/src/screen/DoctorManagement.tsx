@@ -283,6 +283,9 @@ const DoctorManagement: React.FC = () => {
     ],
     [patientSearch, patientPage, patientLimit]
   );
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  const token = localStorage.getItem("accessToken");
+  
   const { data: patientsData, isLoading: loadingPatients } = useQuery<any>({
     queryKey: patientsQueryKey,
     queryFn: () =>
@@ -295,7 +298,37 @@ const DoctorManagement: React.FC = () => {
             sortBy: "createdAt",
             sortOrder: "desc"
           }),
+    enabled: !!token,
+    retry: false,
   });
+  
+  // Mock patient data when no token (bypass mode) - Only 1 for Figma design
+  const mockPatientData = !token ? {
+    data: [{
+      id: "mock-patient-1",
+      fullName: "Nguyễn Văn A",
+      phoneNumber: "0902000001",
+      profile: {
+        gender: "MALE",
+        birthDate: "1990-06-16",
+        address: "Số 59 Đường ABC, Q.3, TP.HCM",
+      },
+      doctor: {
+        fullName: "BS. Đặng Thanh Hải",
+        majorDoctor: { name: "Da liễu" },
+      },
+      status: "ACTIVE",
+      createdAt: new Date().toISOString(),
+    }],
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      total: 1,
+      limit: patientLimit,
+      hasNextPage: false,
+      hasPrevPage: false,
+    },
+  } : null;
 
   // Doctor queries
   const doctorsQueryKey = useMemo(
@@ -319,7 +352,29 @@ const DoctorManagement: React.FC = () => {
         sortBy: "createdAt",
         sortOrder: "desc",
       }),
+    enabled: !!token,
+    retry: false,
   });
+  
+  // Mock doctor data when no token (bypass mode) - Only 1 for Figma design
+  const mockDoctorData = !token ? {
+    data: [{
+      id: "mock-doctor-1",
+      fullName: "BS. Nguyễn Văn An",
+      phoneNumber: "0931000001",
+      majorDoctor: { id: "major-1", name: "Da liễu" },
+      status: "ACTIVE",
+      createdAt: new Date().toISOString(),
+    }],
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      total: 1,
+      limit: doctorLimit,
+      hasNextPage: false,
+      hasPrevPage: false,
+    },
+  } : null;
 
 
   // Mutations
@@ -449,7 +504,30 @@ const DoctorManagement: React.FC = () => {
         sortBy: "createdAt",
         sortOrder: "desc",
       }),
+    enabled: !!token,
+    retry: false,
   });
+  
+  // Mock prescription data when no token (bypass mode) - Only 1 for Figma design
+  const mockPrescriptionData = !token ? {
+    data: {
+      items: [{
+        id: "mock-prescription-1",
+        patient: { fullName: "Nguyễn Văn A", phoneNumber: "0902000001" },
+        items: [{
+          medication: { name: "Paracetamol", strength: "500mg", form: "tablet" },
+          dosage: "1 viên",
+          frequencyPerDay: 3,
+          durationDays: 7,
+        }],
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+      }],
+      total: 1,
+      page: 1,
+      limit: 10,
+    },
+  } : null;
 
   // ADMIN: medications in prescriptions tab
   const medsQuery = useQuery({
@@ -461,8 +539,25 @@ const DoctorManagement: React.FC = () => {
         sortBy: "createdAt",
         sortOrder: "desc",
       }),
-    enabled: role === "ADMIN",
+    enabled: role === "ADMIN" && !!token,
+    retry: false,
   });
+  
+  // Mock medication data when no token (bypass mode) - Only 1 for Figma design
+  const mockMedicationData = !token ? {
+    items: [{
+      id: "mock-med-1",
+      name: "Paracetamol",
+      strength: "500mg",
+      form: "tablet",
+      unit: "viên",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    }],
+    total: 1,
+    page: medPage,
+    limit: medLimit,
+  } : null;
   const [openMedDialog, setOpenMedDialog] = useState(false);
   const [editingMedId, setEditingMedId] = useState<string | undefined>(
     undefined
@@ -1365,7 +1460,7 @@ const DoctorManagement: React.FC = () => {
                         <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                         Tổng số bệnh nhân:{" "}
                         <span className="font-semibold text-primary">
-                          {patientsData?.pagination?.total || patientsData?.total || patientsData?.data?.length || 0}
+                          {(!token && mockPatientData) ? mockPatientData.pagination?.total : (patientsData?.pagination?.total || patientsData?.total || patientsData?.data?.length || 0)}
                         </span>
                       </div>
                     </div>
@@ -1447,7 +1542,7 @@ const DoctorManagement: React.FC = () => {
                       <TableBody>
                         {(role === "PATIENT"
                           ? [currentUserQuery.data].filter(Boolean)
-                          : toArray(patientsData?.data || patientsData)
+                          : toArray(!token && mockPatientData ? mockPatientData.data : (patientsData?.data || patientsData))
                         ).map((p: any, index: number) => (
                           <TableRow
                             key={p.id}
@@ -1974,7 +2069,7 @@ const DoctorManagement: React.FC = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {toArray(prescriptionsQuery.data).map(
+                            {toArray(!token && mockPrescriptionData ? mockPrescriptionData.data?.items : (prescriptionsQuery.data || [])).map(
                               (pr: any, index: number) => (
                                 <TableRow
                                   key={pr.id}
@@ -2136,7 +2231,7 @@ const DoctorManagement: React.FC = () => {
                           </TableHeader>
                           <TableBody>
                             {(
-                              medsQuery.data?.items || toArray(medsQuery.data)
+                              (!token && mockMedicationData) ? mockMedicationData.items : (medsQuery.data?.items || toArray(medsQuery.data) || [])
                             ).map((m: any, index: number) => (
                               <TableRow
                                 key={m.id}
@@ -2413,7 +2508,7 @@ const DoctorManagement: React.FC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {toArray(doctorsData?.data).map(
+                        {toArray(!token && mockDoctorData ? mockDoctorData.data : (doctorsData?.data || [])).map(
                           (doctor: DoctorUser, index: number) => (
                             <TableRow
                               key={doctor.id}
