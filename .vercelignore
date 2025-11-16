@@ -1,0 +1,7 @@
+# Ignore backend khi deploy
+medical_management_be/
+documents/
+docker-compose*.yml
+Dockerfile
+*.md
+
