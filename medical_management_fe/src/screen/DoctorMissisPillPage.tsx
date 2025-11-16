@@ -72,11 +72,21 @@ const DoctorMissisPillPage: React.FC = () => {
   const mockAdherenceData = !token ? {
     items: [{
       id: "mock-patient-1",
+      patientId: "mock-patient-1", // Add patientId (alias for id)
       fullName: "Nguyễn Văn A",
       phoneNumber: "0902000001",
       todayStatus: "COMPLIANT",
+      primaryStatus: "COMPLIANT", // Add primaryStatus
       adherenceRate: 0.92,
+      totalTaken: 23, // Add totalTaken
+      totalMissed: 0, // Add totalMissed
       totalAlerts: 0,
+      todayWarningCount: 0, // Add todayWarningCount
+      alerts: { // Add alerts object
+        missedDose: 0,
+        lowAdherence: 0,
+        other: 0,
+      },
       lastMedicationTime: new Date().toISOString(),
     }],
     total: 1,
