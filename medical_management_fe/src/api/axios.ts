@@ -30,10 +30,16 @@ axiosInstance.interceptors.response.use(
   (error) => {
     // Handle errors here
     if (error.response?.status === 401) {
-      // Handle unauthorized
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      window.location.href = "/";
+      // TODO: REMOVE THIS CHECK - TEMPORARY BYPASS FOR TESTING
+      // Only redirect if we're not in bypass mode (have token)
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        // Only redirect if we had a token (real auth failure)
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/";
+      }
+      // If no token, just reject without redirect (bypass mode)
     }
     return Promise.reject(error);
   }

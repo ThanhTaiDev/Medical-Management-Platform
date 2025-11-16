@@ -6,9 +6,14 @@ import ReactECharts from "echarts-for-react";
 
 function useAdminSelectedDoctor() {
   const [doctorId, setDoctorId] = React.useState<string | undefined>(undefined);
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  // Disable API calls when no token (bypass mode)
+  const token = localStorage.getItem("accessToken");
   const { data: doctorsResp } = useQuery({
     queryKey: ["admin-doctors"],
     queryFn: async () => userApi.getUsers({ role: "DOCTOR", limit: 100 }),
+    enabled: !!token, // Only fetch if token exists
+    retry: false, // Don't retry on failure
   });
   const doctors = doctorsResp?.data || [];
   React.useEffect(() => {
@@ -18,21 +23,27 @@ function useAdminSelectedDoctor() {
 }
 
 function useOverviewData(doctorId?: string) {
-  const enabled = !!doctorId;
+  // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
+  // Disable API calls when no token (bypass mode)
+  const token = localStorage.getItem("accessToken");
+  const enabled = !!doctorId && !!token; // Only enable if both doctorId and token exist
   const overviewQuery = useQuery({
     queryKey: ["doctor-overview", doctorId],
     queryFn: () => DoctorApi.overview({ doctorId }),
     enabled,
+    retry: false, // Don't retry on failure
   });
   const itemsQuery = useQuery({
     queryKey: ["doctor-overview-items", doctorId],
     queryFn: () => DoctorApi.overviewPrescriptionItems({ doctorId, page: 1, limit: 10 }),
     enabled,
+    retry: false, // Don't retry on failure
   });
   const patientsQuery = useQuery({
     queryKey: ["doctor-overview-patients", doctorId],
     queryFn: () => DoctorApi.overviewActivePatients({ doctorId, page: 1, limit: 10 }),
     enabled,
+    retry: false, // Don't retry on failure
   });
   return { overviewQuery, itemsQuery, patientsQuery };
 }

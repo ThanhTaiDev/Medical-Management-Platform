@@ -341,6 +341,9 @@ const DashboardLayout: React.FC = () => {
   const { data: userData, isLoading, isError } = useQuery({
     queryKey: ["currentUser"],
     queryFn: authApi.getCurrentUser,
+    retry: false, // Disable retry to prevent infinite loop
+    refetchOnWindowFocus: false, // Disable refetch on window focus
+    refetchOnMount: false, // Only fetch once on mount
   });
 
   // Đóng dropdown khi click ra ngoài
