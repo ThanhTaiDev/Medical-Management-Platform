@@ -76,7 +76,7 @@ const DoctorMissisPillPage: React.FC = () => {
       fullName: "Nguyễn Văn A",
       phoneNumber: "0902000001",
       todayStatus: "COMPLIANT",
-      primaryStatus: "COMPLIANT", // Add primaryStatus
+      primaryStatus: "TAKEN", // Add primaryStatus (TAKEN, MISSED, or mixed)
       adherenceRate: 0.92,
       totalTaken: 23, // Add totalTaken
       totalMissed: 0, // Add totalMissed
