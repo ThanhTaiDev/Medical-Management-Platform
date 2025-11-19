@@ -1,4 +1,7 @@
-// Mocked auth API for FE-only flow
+/**
+ * API service cho authentication
+ * Xử lý đăng nhập, đăng ký và quản lý phiên đăng nhập
+ */
 import { axiosInstance } from "../axios";
 import { AuthResponse, SignInData, SignUpData, UserResponse } from "./types";
 
