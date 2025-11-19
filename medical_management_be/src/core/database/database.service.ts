@@ -11,6 +11,9 @@ import {
 } from '@/utils/prisma.util';
 import { Utils } from '@/utils/utils';
 
+/**
+ * Cấu trúc dữ liệu pagination result
+ */
 interface PaginationResult {
   total: number;
   page: number;
