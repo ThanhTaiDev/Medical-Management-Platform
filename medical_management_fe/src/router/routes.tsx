@@ -39,7 +39,7 @@ const getPrimaryRole = (): "ADMIN" | "DOCTOR" | "PATIENT" | null => {
   // }
 };
 
-const roleToDefaultPath = (role: ReturnType<typeof getPrimaryRole>) => {
+const roleToDefaultPath = (role: ReturnType<typeof getPrimaryRole>): string => {
   if (role === "ADMIN") return "/dashboard";
   if (role === "DOCTOR") return "/dashboard/doctor-patients";
   if (role === "PATIENT") return "/dashboard/patients";
