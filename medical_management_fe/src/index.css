@@ -1,3 +1,7 @@
+/**
+ * Main CSS file cho Medical Management Frontend
+ * Sử dụng Tailwind CSS và custom theme variables
+ */
 @import "tailwindcss";
 @import "tw-animate-css";
 
