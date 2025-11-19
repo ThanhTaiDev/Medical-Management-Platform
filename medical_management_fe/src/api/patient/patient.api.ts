@@ -1,4 +1,7 @@
-// Mocked patient API for FE-only flow
+/**
+ * API service cho các chức năng liên quan đến bệnh nhân
+ * Quản lý thông tin bệnh nhân, đơn thuốc và lịch uống thuốc
+ */
 import { axiosInstance } from "../axios";
 import { ICreatePatientRequest, ICreatePatientResponse, IGetPatientPaginationResponse, IGetPatientResponse, IUpdatePatientRequest } from "./types.patient";
 
