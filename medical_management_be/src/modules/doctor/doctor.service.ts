@@ -15,6 +15,10 @@ import {
   AlertType
 } from '@prisma/client';
 
+/**
+ * Service xử lý các nghiệp vụ liên quan đến bác sĩ
+ * Quản lý bệnh nhân, đơn thuốc và thông tin bác sĩ
+ */
 @Injectable()
 export class DoctorService {
   constructor(private readonly databaseService: DatabaseService) { }
