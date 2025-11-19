@@ -42,6 +42,7 @@ async function bootstrap() {
     const port = process.env.PORT || 9944;
     await app.listen(port, '0.0.0.0');
     console.log(`Application is running on: http://localhost:${port}`);
+    console.log(`API Documentation available at: http://localhost:${port}/api`);
   } catch (error) {
     console.error('Error starting application:', error);
     process.exit(1);
