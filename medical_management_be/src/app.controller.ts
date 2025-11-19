@@ -1,6 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 
+/**
+ * Controller chính của ứng dụng
+ * Xử lý các request cơ bản và thông tin WebSocket
+ */
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
