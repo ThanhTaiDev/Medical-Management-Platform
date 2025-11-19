@@ -16,7 +16,7 @@ import PatientInfo from "@/screen/PatientInfo";
 
 // Kiểm tra nếu người dùng đã đăng nhập
 // TODO: REMOVE THIS - TEMPORARY BYPASS FOR TESTING
-const isAuthenticated = () => {
+const isAuthenticated = (): boolean => {
   // Bypass authentication - always return true for testing
   return true;
   // return !!localStorage.getItem("accessToken");
