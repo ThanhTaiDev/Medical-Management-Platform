@@ -1,9 +1,12 @@
 import axios from "axios";
 
+// Cấu hình base URL cho API requests
 const baseURL = import.meta.env.VITE_API_URL || "https://api.medical.minhtuandng.io.vn/api";
 
+// Tạo axios instance với cấu hình mặc định
 export const axiosInstance = axios.create({
   baseURL,
+  timeout: 30000, // 30 giây timeout
   headers: {
     "Content-Type": "application/json",
   },

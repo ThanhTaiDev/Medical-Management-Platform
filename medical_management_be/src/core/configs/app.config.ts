@@ -3,6 +3,7 @@ import { EEnvironment, IAppConfig } from 'src/core/configs/config.i';
 import validateConfig from 'src/utils/validateConfig.utils';
 import { z } from 'zod';
 
+// Schema validation cho environment variables
 const envSchema = z.object({
   NODE_ENV: z
     .nativeEnum(EEnvironment)
