@@ -379,7 +379,7 @@ const DashboardLayout: React.FC = () => {
           queryClient.refetchQueries({ queryKey: ["currentUser"] });
         } else {
           // Token was removed (logout) - clear user data
-          queryClient.setQueryData({ queryKey: ["currentUser"] }, null);
+          queryClient.setQueryData(["currentUser"], null);
           queryClient.removeQueries({ queryKey: ["currentUser"] });
         }
       }
@@ -398,7 +398,7 @@ const DashboardLayout: React.FC = () => {
         queryClient.refetchQueries({ queryKey: ["currentUser"] });
       } else {
         // Token was removed (logout) - clear user data
-        queryClient.setQueryData({ queryKey: ["currentUser"] }, null);
+        queryClient.setQueryData(["currentUser"], null);
         queryClient.removeQueries({ queryKey: ["currentUser"] });
       }
     };
@@ -471,7 +471,7 @@ const DashboardLayout: React.FC = () => {
           <Button
             variant="default"
             onClick={() => {
-              queryClient.setQueryData({ queryKey: ["currentUser"] }, null);
+              queryClient.setQueryData(["currentUser"], null);
               authApi.logout();
               window.location.href = "/";
             }}
@@ -622,7 +622,7 @@ const DashboardLayout: React.FC = () => {
                           size="sm"
                           className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors duration-200"
                           onClick={() => {
-                            queryClient.setQueryData({ queryKey: ["currentUser"] }, null);
+                            queryClient.setQueryData(["currentUser"], null);
                             authApi.logout();
                             navigate("/");
                           }}
