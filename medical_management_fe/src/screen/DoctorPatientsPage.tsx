@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { patientApi } from "@/api/patient/patient.api";
 import { DoctorApi } from "@/api/doctor";
-import { doctorApi } from "@/api/doctor/doctor.api";
 import { MedicationsApi } from "@/api/medications";
 import { Button } from "@/components/ui/button";
 import { CreatePatientDialog } from "@/components/dialogs/patients/create-patient.dialog";
@@ -36,6 +35,7 @@ import {
   Search,
   X as XIcon,
   Bell,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { X } from "lucide-react";
@@ -186,6 +186,36 @@ export default function DoctorPatientsPage() {
     Array<{ key: string; value: string }>
   >([{ key: "", value: "" }]);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Export treatment report state
+  const [isExportReportDialogOpen, setIsExportReportDialogOpen] = useState(false);
+  const [exportReportFilters, setExportReportFilters] = useState<{
+    startDate?: string;
+    endDate?: string;
+  }>({});
+
+  const exportReportMutation = useMutation({
+    mutationFn: (filters?: typeof exportReportFilters) => {
+      if (!historyPatient?.id) throw new Error("Chưa chọn bệnh nhân");
+      return DoctorApi.exportTreatmentReport(historyPatient.id, filters);
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bao-cao-dieu-tri-${historyPatient?.id}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất báo cáo thành công!");
+      setIsExportReportDialogOpen(false);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Xuất báo cáo thất bại";
+      toast.error(errorMessage);
+    },
+  });
 
   // Prescription form states
   const [prescriptionItems, setPrescriptionItems] = useState<
@@ -306,7 +336,7 @@ export default function DoctorPatientsPage() {
   const sendReminderMutation = useMutation({
     mutationFn: async ({ patientId, data }: { patientId: string; data: SendReminderData }) => {
       // Lấy danh sách đơn thuốc của bệnh nhân từ bác sĩ
-      const prescriptions = await doctorApi.getPatientPrescriptions(patientId);
+      const prescriptions = await DoctorApi.listPrescriptions({});
       
       // Tìm đơn thuốc ACTIVE
       const activePrescription = prescriptions?.data?.items?.find(
@@ -317,11 +347,7 @@ export default function DoctorPatientsPage() {
         throw new Error("Bệnh nhân không có đơn thuốc đang hoạt động hoặc không có thuốc trong đơn");
       }
       
-      return doctorApi.sendManualReminder({
-        prescriptionId: activePrescription.id,
-        message: data.message,
-        type: data.type,
-      });
+      return DoctorApi.warnPatient(patientId, data.message);
     },
     onSuccess: () => {
       toast.success("Gửi nhắc nhở thành công!");
@@ -1350,12 +1376,27 @@ export default function DoctorPatientsPage() {
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="sm:max-w-[1100px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              Quản lý bệnh nhân
-            </DialogTitle>
-            <DialogDescription>
-              Quản lý thông tin và tiền sử bệnh án của bệnh nhân
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-semibold">
+                  Quản lý bệnh nhân
+                </DialogTitle>
+                <DialogDescription>
+                  Quản lý thông tin và tiền sử bệnh án của bệnh nhân
+                </DialogDescription>
+              </div>
+              {historyPatient && (
+                <Button
+                  onClick={() => setIsExportReportDialogOpen(true)}
+                  variant="outline"
+                  className="gap-2"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4" />
+                  Xuất Báo Cáo
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {/* Patient Info Summary */}
@@ -2337,6 +2378,56 @@ export default function DoctorPatientsPage() {
                 Lưu tiền sử
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Treatment Report Dialog */}
+      <Dialog open={isExportReportDialogOpen} onOpenChange={setIsExportReportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xuất Báo Cáo Điều Trị</DialogTitle>
+            <DialogDescription>
+              Chọn khoảng thời gian để xuất báo cáo điều trị của bệnh nhân ra file Excel
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Từ ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportReportFilters.startDate || ""}
+                  onChange={(e) => setExportReportFilters({ ...exportReportFilters, startDate: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Đến ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportReportFilters.endDate || ""}
+                  onChange={(e) => setExportReportFilters({ ...exportReportFilters, endDate: e.target.value || undefined })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportReportDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={() => {
+                const cleanFilters = Object.fromEntries(
+                  Object.entries(exportReportFilters).filter(([_, value]) => value !== undefined && value !== "")
+                );
+                exportReportMutation.mutate(cleanFilters);
+              }}
+              disabled={exportReportMutation.isPending}
+            >
+              {exportReportMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
