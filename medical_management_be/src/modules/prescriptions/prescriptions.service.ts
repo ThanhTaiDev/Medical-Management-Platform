@@ -8,6 +8,7 @@ import {
 import { DatabaseService } from '@/core/database/database.service';
 import { PrescriptionStatus, AdherenceStatus } from '@prisma/client';
 import { MedicalManagementGateway } from '@/modules/notifications/websocket.gateway';
+import * as ExcelJS from 'exceljs';
 
 export interface CreatePrescriptionDto {
   patientId: string;
@@ -872,5 +873,164 @@ export class PrescriptionsService {
     );
 
     return schedule;
+  }
+
+  async exportPrescriptionsToExcel(filters?: {
+    status?: PrescriptionStatus;
+    doctorId?: string;
+    patientId?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const where: any = {};
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.doctorId) {
+      where.doctorId = filters.doctorId;
+    }
+
+    if (filters?.patientId) {
+      where.patientId = filters.patientId;
+    }
+
+    // Chỉ filter theo ngày nếu có ít nhất một ngày được chọn
+    if (filters?.startDate || filters?.endDate) {
+      where.createdAt = {};
+      if (filters.startDate && filters.startDate.trim() !== '') {
+        where.createdAt.gte = new Date(filters.startDate);
+      }
+      if (filters.endDate && filters.endDate.trim() !== '') {
+        // Nếu có endDate, set thời gian cuối ngày (23:59:59)
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endDate;
+      }
+    }
+
+    const prescriptions = await this.databaseService.client.prescription.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true
+          }
+        },
+        doctor: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            majorDoctor: true
+          }
+        },
+        items: {
+          include: {
+            medication: {
+              select: {
+                id: true,
+                name: true,
+                strength: true,
+                form: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    
+    // Main sheet - Prescriptions
+    const mainSheet = workbook.addWorksheet('Đơn thuốc');
+    mainSheet.columns = [
+      { header: 'ID', key: 'id', width: 36 },
+      { header: 'Bệnh nhân', key: 'patientName', width: 25 },
+      { header: 'SĐT bệnh nhân', key: 'patientPhone', width: 15 },
+      { header: 'Bác sĩ', key: 'doctorName', width: 25 },
+      { header: 'Chuyên khoa', key: 'specialty', width: 20 },
+      { header: 'Trạng thái', key: 'status', width: 12 },
+      { header: 'Ngày bắt đầu', key: 'startDate', width: 20 },
+      { header: 'Ngày kết thúc', key: 'endDate', width: 20 },
+      { header: 'Số thuốc', key: 'itemsCount', width: 10 },
+      { header: 'Ghi chú', key: 'notes', width: 30 },
+      { header: 'Ngày tạo', key: 'createdAt', width: 20 }
+    ];
+
+    // Style header row
+    mainSheet.getRow(1).font = { bold: true };
+    mainSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Add data rows
+    prescriptions.forEach((prescription) => {
+      mainSheet.addRow({
+        id: prescription.id,
+        patientName: prescription.patient?.fullName || '',
+        patientPhone: prescription.patient?.phoneNumber || '',
+        doctorName: prescription.doctor?.fullName || '',
+        specialty: prescription.doctor?.majorDoctor?.name || '',
+        status: prescription.status === 'ACTIVE' ? 'Đang điều trị' : 
+                prescription.status === 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy',
+        startDate: prescription.startDate ? new Date(prescription.startDate).toLocaleDateString('vi-VN') : '',
+        endDate: prescription.endDate ? new Date(prescription.endDate).toLocaleDateString('vi-VN') : '',
+        itemsCount: prescription.items?.length || 0,
+        notes: prescription.notes || '',
+        createdAt: prescription.createdAt ? new Date(prescription.createdAt).toLocaleString('vi-VN') : ''
+      });
+    });
+
+    // Items sheet - Prescription Items
+    const itemsSheet = workbook.addWorksheet('Chi tiết thuốc');
+    itemsSheet.columns = [
+      { header: 'ID đơn thuốc', key: 'prescriptionId', width: 36 },
+      { header: 'Tên thuốc', key: 'medicationName', width: 30 },
+      { header: 'Hàm lượng', key: 'strength', width: 15 },
+      { header: 'Dạng bào chế', key: 'form', width: 15 },
+      { header: 'Liều lượng', key: 'dosage', width: 15 },
+      { header: 'Số lần/ngày', key: 'frequencyPerDay', width: 12 },
+      { header: 'Khung giờ', key: 'timesOfDay', width: 20 },
+      { header: 'Số ngày', key: 'durationDays', width: 10 },
+      { header: 'Đường dùng', key: 'route', width: 15 },
+      { header: 'Hướng dẫn', key: 'instructions', width: 30 }
+    ];
+
+    // Style header row
+    itemsSheet.getRow(1).font = { bold: true };
+    itemsSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Add items data
+    prescriptions.forEach((prescription) => {
+      prescription.items?.forEach((item) => {
+        itemsSheet.addRow({
+          prescriptionId: prescription.id,
+          medicationName: item.medication?.name || '',
+          strength: item.medication?.strength || '',
+          form: item.medication?.form || '',
+          dosage: item.dosage,
+          frequencyPerDay: item.frequencyPerDay,
+          timesOfDay: Array.isArray(item.timesOfDay) ? item.timesOfDay.join(', ') : '',
+          durationDays: item.durationDays,
+          route: item.route || '',
+          instructions: item.instructions || ''
+        });
+      });
+    });
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }

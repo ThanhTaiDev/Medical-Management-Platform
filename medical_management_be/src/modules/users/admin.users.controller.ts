@@ -8,14 +8,17 @@ import {
   Param,
   Patch,
   Post,
-  Query
+  Query,
+  Res
 } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import { UsersService } from './users.service';
 import { UserInfo } from '@/common/decorators/users.decorator';
 import { IUserFromToken } from '@/modules/users/types/user.type';
 import RegisterDto from '@/core/auth/dtos/register.dto';
 import { UpdateUserDto } from './dtos/update.dto';
-import { UserRole } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
+import { SkipTransform } from '@/common/decorators/skip-transform.decorator';
 
 @Controller('admin/users')
 export class AdminUsersController {
@@ -87,5 +90,45 @@ export class AdminUsersController {
   async softDelete(@Param('id') id: string, @UserInfo() user: IUserFromToken) {
     this.ensureAdmin(user);
     return this.usersService.adminSoftDeleteUser(id);
+  }
+
+  @Post('export')
+  @SkipTransform()
+  async exportUsers(
+    @UserInfo() user: IUserFromToken,
+    @Res() reply: FastifyReply,
+    @Body() body?: {
+      role?: UserRole;
+      status?: UserStatus;
+      startDate?: string;
+      endDate?: string;
+    }
+  ) {
+    this.ensureAdmin(user);
+
+    try {
+      const buffer = await this.usersService.exportUsersToExcel(body);
+
+      const fileName = `danh-sach-nguoi-dung-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Ensure buffer is a Buffer instance
+      const excelBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+
+      reply
+        .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .header('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`)
+        .send(excelBuffer);
+    } catch (error: any) {
+      console.error('Error exporting users to Excel:', error);
+      const errorMessage = error?.message || 'Lỗi khi xuất Excel';
+      reply
+        .code(HttpStatus.INTERNAL_SERVER_ERROR)
+        .header('Content-Type', 'application/json')
+        .send({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: errorMessage,
+          error: 'Internal Server Error'
+        });
+    }
   }
 }

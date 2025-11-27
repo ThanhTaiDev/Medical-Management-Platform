@@ -8,12 +8,15 @@ import {
   Param,
   Patch,
   Post,
-  Query
+  Query,
+  Res
 } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import { PrescriptionsService } from './prescriptions.service';
 import { UserInfo } from '@/common/decorators/users.decorator';
 import { IUserFromToken } from '@/modules/users/types/user.type';
 import { UserRole, PrescriptionStatus } from '@prisma/client';
+import { SkipTransform } from '@/common/decorators/skip-transform.decorator';
 
 @Controller('admin/prescriptions')
 export class AdminPrescriptionsController {
@@ -186,5 +189,46 @@ export class AdminPrescriptionsController {
       patientId,
       targetDate
     );
+  }
+
+  @Post('export')
+  @SkipTransform()
+  async exportPrescriptions(
+    @UserInfo() user: IUserFromToken,
+    @Res() reply: FastifyReply,
+    @Body() body?: {
+      status?: PrescriptionStatus;
+      doctorId?: string;
+      patientId?: string;
+      startDate?: string;
+      endDate?: string;
+    }
+  ) {
+    this.ensureAdmin(user);
+
+    try {
+      const buffer = await this.prescriptionsService.exportPrescriptionsToExcel(body);
+
+      const fileName = `danh-sach-don-thuoc-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Ensure buffer is a Buffer instance
+      const excelBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+
+      reply
+        .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .header('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`)
+        .send(excelBuffer);
+    } catch (error: any) {
+      console.error('Error exporting prescriptions to Excel:', error);
+      const errorMessage = error?.message || 'Lỗi khi xuất Excel';
+      reply
+        .code(HttpStatus.INTERNAL_SERVER_ERROR)
+        .header('Content-Type', 'application/json')
+        .send({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: errorMessage,
+          error: 'Internal Server Error'
+        });
+    }
   }
 }

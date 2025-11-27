@@ -18,6 +18,7 @@ import { UpdatePatientDto, UpdateUserDto } from './dtos/update.dto';
 import DeleteMultiplePatientsDto from './dtos/delete-multiple.dto';
 import UpdateHealthAndExerciseDto from './dtos/update-health-issues.dto';
 import { ConfigService } from '@nestjs/config';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class UsersService {
@@ -420,5 +421,83 @@ export class UsersService {
         phoneNumber: p.phoneNumber
       }))
     };
+  }
+
+  async exportUsersToExcel(filters?: {
+    role?: UserRole;
+    status?: UserStatus;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const where: any = { deletedAt: null };
+
+    if (filters?.role) {
+      where.role = filters.role;
+    }
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    // Chỉ filter theo ngày nếu có ít nhất một ngày được chọn
+    if (filters?.startDate || filters?.endDate) {
+      where.createdAt = {};
+      if (filters.startDate && filters.startDate.trim() !== '') {
+        where.createdAt.gte = new Date(filters.startDate);
+      }
+      if (filters.endDate && filters.endDate.trim() !== '') {
+        // Nếu có endDate, set thời gian cuối ngày (23:59:59)
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endDate;
+      }
+    }
+
+    const users = await this.databaseService.client.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        profile: true
+      }
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Danh sách người dùng');
+
+    // Set column headers
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 36 },
+      { header: 'Họ tên', key: 'fullName', width: 25 },
+      { header: 'Số điện thoại', key: 'phoneNumber', width: 15 },
+      { header: 'Vai trò', key: 'role', width: 12 },
+      { header: 'Trạng thái', key: 'status', width: 12 },
+      { header: 'Ngày tạo', key: 'createdAt', width: 20 },
+      { header: 'Ngày cập nhật', key: 'updatedAt', width: 20 }
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Add data rows
+    users.forEach((user) => {
+      worksheet.addRow({
+        id: user.id,
+        fullName: user.fullName || '',
+        phoneNumber: user.phoneNumber,
+        role: user.role === 'ADMIN' ? 'Quản trị viên' : user.role === 'DOCTOR' ? 'Bác sĩ' : 'Bệnh nhân',
+        status: user.status === 'ACTIVE' ? 'Hoạt động' : user.status === 'INACTIVE' ? 'Không hoạt động' : 'Bị khóa',
+        createdAt: user.createdAt ? new Date(user.createdAt).toLocaleString('vi-VN') : '',
+        updatedAt: user.updatedAt ? new Date(user.updatedAt).toLocaleString('vi-VN') : ''
+      });
+    });
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }
