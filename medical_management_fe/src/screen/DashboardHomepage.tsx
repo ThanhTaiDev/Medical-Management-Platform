@@ -1,9 +1,14 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DoctorApi } from "@/api/doctor";
 import { userApi } from "@/api/user/user.api";
+import { reportsApi } from "@/api/reports/reports.api";
 import ReactECharts from "echarts-for-react";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import toast from "react-hot-toast";
 
 function useAdminSelectedDoctor() {
   const [doctorId, setDoctorId] = React.useState<string | undefined>(undefined);
@@ -99,6 +104,33 @@ const DashboardHomepage: React.FC = () => {
   const navigate = useNavigate();
   const { doctorId, setDoctorId, doctors } = useAdminSelectedDoctor();
   const { overviewQuery, itemsQuery, patientsQuery } = useOverviewData(doctorId);
+  
+  // Export report state
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportFilters, setExportFilters] = useState<{
+    startDate?: string;
+    endDate?: string;
+  }>({});
+
+  const exportMutation = useMutation({
+    mutationFn: (filters?: typeof exportFilters) => reportsApi.exportOverallReport(filters),
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bao-cao-tong-quan-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất báo cáo thành công!");
+      setIsExportDialogOpen(false);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Xuất báo cáo thất bại";
+      toast.error(errorMessage);
+    },
+  });
 
   // Redirect non-admin users to their appropriate pages
   useEffect(() => {
@@ -164,6 +196,14 @@ const DashboardHomepage: React.FC = () => {
               <option key={d.id} value={d.id}>{d.fullName}</option>
             ))}
           </select>
+          <Button
+            onClick={() => setIsExportDialogOpen(true)}
+            variant="outline"
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Xuất Báo Cáo
+          </Button>
         </div>
       </div>
 
@@ -272,6 +312,56 @@ const DashboardHomepage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Export Report Dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xuất Báo Cáo Tổng Quan</DialogTitle>
+            <DialogDescription>
+              Chọn khoảng thời gian để xuất báo cáo tổng quan ra file Excel
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Từ ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportFilters.startDate || ""}
+                  onChange={(e) => setExportFilters({ ...exportFilters, startDate: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Đến ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportFilters.endDate || ""}
+                  onChange={(e) => setExportFilters({ ...exportFilters, endDate: e.target.value || undefined })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={() => {
+                const cleanFilters = Object.fromEntries(
+                  Object.entries(exportFilters).filter(([_, value]) => value !== undefined && value !== "")
+                );
+                exportMutation.mutate(cleanFilters);
+              }}
+              disabled={exportMutation.isPending}
+            >
+              {exportMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
