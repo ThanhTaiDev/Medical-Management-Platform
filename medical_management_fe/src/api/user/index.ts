@@ -21,4 +21,6 @@ export const UsersApi = {
   },
 };
 
+export { userApi } from "./user.api";
+
 

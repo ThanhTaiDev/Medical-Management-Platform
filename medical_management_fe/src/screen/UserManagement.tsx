@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, keepPreviousData, useMutation } from "@tanstack/react-query";
 import { userApi } from "@/api/user/user.api";
 import { User, UserListResponse } from "@/api/user/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
+import { Download } from "lucide-react";
 
 const UserManagement: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -10,6 +14,13 @@ const UserManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportFilters, setExportFilters] = useState<{
+    role?: "ADMIN" | "DOCTOR" | "PATIENT";
+    status?: "ACTIVE" | "INACTIVE" | "BLOCKED";
+    startDate?: string;
+    endDate?: string;
+  }>({});
 
   // Debounce search query
   useEffect(() => {
@@ -31,7 +42,6 @@ const UserManagement: React.FC = () => {
         role: roleFilter === "ALL" ? undefined : roleFilter,
         search: debouncedSearchQuery.trim() || undefined
       };
-      console.log('🔍 Search params:', params);
       return userApi.getUsers(params);
     },
     enabled: !!token, // Only fetch if token exists
@@ -73,6 +83,26 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     refetch();
   }, [page, limit, roleFilter, debouncedSearchQuery, refetch]);
+
+  const exportMutation = useMutation({
+    mutationFn: (filters?: typeof exportFilters) => userApi.exportUsers(filters),
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `danh-sach-nguoi-dung-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất Excel thành công!");
+      setIsExportDialogOpen(false);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.message || error?.response?.data?.message || "Xuất Excel thất bại";
+      toast.error(errorMessage);
+    },
+  });
 
   const users = (!token && mockData) ? mockData.data : (data?.data ?? []);
   const pagination = (!token && mockData) ? mockData.pagination : (data?.pagination);
@@ -140,6 +170,14 @@ const UserManagement: React.FC = () => {
                     ))}
                   </select>
                 </div>
+                <Button
+                  onClick={() => setIsExportDialogOpen(true)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Xuất Excel
+                </Button>
               </div>
             </div>
 
@@ -370,6 +408,83 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Export Dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xuất Excel</DialogTitle>
+            <DialogDescription>
+              Chọn các bộ lọc để xuất danh sách người dùng ra file Excel
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Vai trò</label>
+              <select
+                className="w-full px-3 py-2 border rounded-lg"
+                value={exportFilters.role || ""}
+                onChange={(e) => setExportFilters({ ...exportFilters, role: e.target.value as any || undefined })}
+              >
+                <option value="">Tất cả</option>
+                <option value="ADMIN">Quản trị viên</option>
+                <option value="DOCTOR">Bác sĩ</option>
+                <option value="PATIENT">Bệnh nhân</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Trạng thái</label>
+              <select
+                className="w-full px-3 py-2 border rounded-lg"
+                value={exportFilters.status || ""}
+                onChange={(e) => setExportFilters({ ...exportFilters, status: e.target.value as any || undefined })}
+              >
+                <option value="">Tất cả</option>
+                <option value="ACTIVE">Hoạt động</option>
+                <option value="INACTIVE">Không hoạt động</option>
+                <option value="BLOCKED">Bị khóa</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Từ ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportFilters.startDate || ""}
+                  onChange={(e) => setExportFilters({ ...exportFilters, startDate: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Đến ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportFilters.endDate || ""}
+                  onChange={(e) => setExportFilters({ ...exportFilters, endDate: e.target.value || undefined })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={() => {
+                // Chỉ gửi các field có giá trị (loại bỏ empty string và undefined)
+                const cleanFilters = Object.fromEntries(
+                  Object.entries(exportFilters).filter(([_, value]) => value !== undefined && value !== "")
+                );
+                exportMutation.mutate(cleanFilters);
+              }}
+              disabled={exportMutation.isPending}
+            >
+              {exportMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

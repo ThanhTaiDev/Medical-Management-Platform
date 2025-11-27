@@ -21,11 +21,9 @@ export interface GetUsersParams {
 export const userApi = {
   async getUsers(params: GetUsersParams = {}): Promise<UserListResponse> {
     const { page = 1, limit = 10, sortBy, sortOrder, role, search } = params;
-    console.log('🚀 API call params:', { page, limit, sortBy, sortOrder, role, search });
     const res = await axiosInstance.get("/admin/users", {
       params: { page, limit, sortBy, sortOrder, role, search },
     });
-    console.log('📡 API response:', res.data);
     const payload = res.data?.data ?? res.data;
     // Backend returns { items, total, page, limit }
     const items = payload.items as User[];
@@ -73,5 +71,60 @@ export const userApi = {
     const payload = res.data?.data ?? res.data;
     const items = payload.items as User[];
     return { data: items, pagination: { currentPage: 1, totalPages: 1, total: items.length, limit: items.length, hasNextPage: false, hasPrevPage: false }, statusCode: 200 } as UserListResponse;
+  },
+
+  async exportUsers(filters?: {
+    role?: "ADMIN" | "DOCTOR" | "PATIENT";
+    status?: "ACTIVE" | "INACTIVE" | "BLOCKED";
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Blob> {
+    try {
+      const res = await axiosInstance.post(
+        "/admin/users/export",
+        filters || {},
+        {
+          responseType: "blob",
+          validateStatus: (status) => status < 500, // Accept 4xx as errors
+        }
+      );
+      
+      // Kiểm tra nếu response là error (status >= 400)
+      if (res.status >= 400) {
+        // Nếu là blob error, parse nó
+        if (res.data instanceof Blob) {
+          const text = await res.data.text();
+          try {
+            const errorData = JSON.parse(text);
+            throw new Error(errorData.message || "Xuất Excel thất bại");
+          } catch {
+            throw new Error(`Xuất Excel thất bại (${res.status})`);
+          }
+        }
+        throw new Error(`Xuất Excel thất bại (${res.status})`);
+      }
+      
+      // Kiểm tra nếu response có Content-Type là JSON (error)
+      const contentType = res.headers['content-type'] || '';
+      if (contentType.includes('application/json')) {
+        const text = await res.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || "Xuất Excel thất bại");
+      }
+      
+      return res.data;
+    } catch (error: any) {
+      // Nếu là axios error với blob response
+      if (error.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const errorData = JSON.parse(text);
+          throw new Error(errorData.message || "Xuất Excel thất bại");
+        } catch {
+          throw new Error("Xuất Excel thất bại");
+        }
+      }
+      throw error;
+    }
   },
 };
