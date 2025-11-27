@@ -1,7 +1,9 @@
 import axios from "axios";
 
 // Cấu hình base URL cho API requests
-const baseURL = import.meta.env.VITE_API_URL || "https://api.medical.minhtuandng.io.vn/api";
+// Nếu VITE_API_URL không có /api ở cuối, tự động thêm
+const envUrl = import.meta.env.VITE_API_URL || "http://localhost:9900";
+const baseURL = envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
 
 // Tạo axios instance với cấu hình mặc định
 export const axiosInstance = axios.create({

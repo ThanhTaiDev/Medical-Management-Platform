@@ -20,13 +20,13 @@ export class AuthController {
     @IpTracking() ip: string
   ) {
     const data = await this.authService.login(user, userAgent, ip);
+    const isProduction = process.env.NODE_ENV === 'production';
     res.setCookie('token', data.accessToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction, // Chỉ dùng secure trong production (HTTPS)
+      sameSite: isProduction ? 'none' : 'lax', // lax cho development
       path: '/',
-      domain:
-        process.env.NODE_ENV === 'production' ? 'api.uniko.id.vn' : 'localhost',
+      domain: isProduction ? 'api.uniko.id.vn' : undefined, // undefined = localhost
       maxAge: 24 * 60 * 60 * 1000
     });
 

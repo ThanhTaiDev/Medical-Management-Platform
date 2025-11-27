@@ -72,6 +72,9 @@ services:
     build:
       context: ./medical_management_fe
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:9900
+        - VITE_BACKEND_URL=http://localhost:9900
     container_name: medical-frontend
     image: auroraphtgrp/medical_management_frontend:latest
     platform: linux/amd64
@@ -79,9 +82,6 @@ services:
       - medical-network
     ports:
       - "9901:9901"
-    environment:
-      - VITE_API_URL=http://localhost:9900
-      - VITE_BACKEND_URL=http://localhost:9900
     restart: unless-stopped
     depends_on:
       - backend
