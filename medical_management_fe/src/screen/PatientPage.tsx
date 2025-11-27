@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { patientApi } from "@/api/patient/patient.api";
 import { authApi } from "@/api/auth/auth.api";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
+import { axiosInstance } from "@/api/axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   XCircle,
   User,
   Activity,
+  Download,
 } from "lucide-react";
 import { TimeValidationDialog } from "@/components/dialogs/TimeValidationDialog";
 import {
@@ -29,6 +31,7 @@ import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -172,6 +175,77 @@ export default function PatientPage() {
   }>({
     open: false,
     reminder: null,
+  });
+
+  // Export adherence history state
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportFilters, setExportFilters] = useState<{
+    startDate?: string;
+    endDate?: string;
+  }>({});
+
+  const exportMutation = useMutation({
+    mutationFn: async (filters?: typeof exportFilters): Promise<Blob> => {
+      try {
+        const res = await axiosInstance.post(
+          "/patient/adherence/export",
+          filters || {},
+          {
+            responseType: "blob",
+            validateStatus: (status) => status < 500,
+          }
+        );
+
+        if (res.status >= 400) {
+          if (res.data instanceof Blob) {
+            const text = await res.data.text();
+            try {
+              const errorData = JSON.parse(text);
+              throw new Error(errorData.message || "Xuất báo cáo thất bại");
+            } catch {
+              throw new Error(`Xuất báo cáo thất bại (${res.status})`);
+            }
+          }
+          throw new Error(`Xuất báo cáo thất bại (${res.status})`);
+        }
+
+        const contentType = res.headers['content-type'] || '';
+        if (contentType.includes('application/json')) {
+          const text = await res.data.text();
+          const errorData = JSON.parse(text);
+          throw new Error(errorData.message || "Xuất báo cáo thất bại");
+        }
+
+        return res.data;
+      } catch (error: any) {
+        if (error.response?.data instanceof Blob) {
+          const text = await error.response.data.text();
+          try {
+            const errorData = JSON.parse(text);
+            throw new Error(errorData.message || "Xuất báo cáo thất bại");
+          } catch {
+            throw new Error("Xuất báo cáo thất bại");
+          }
+        }
+        throw error;
+      }
+    },
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bao-cao-lich-su-dung-thuoc-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất báo cáo thành công!");
+      setIsExportDialogOpen(false);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Xuất báo cáo thất bại";
+      toast.error(errorMessage);
+    },
   });
 
   const { data: ovAlerts, isLoading: loadingOvAlerts } = useQuery({
@@ -1383,99 +1457,98 @@ export default function PatientPage() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight">
-                    Đơn thuốc
-                  </h2>
-                  <p className="text-muted-foreground">
+                  <h2 className="text-2xl font-bold tracking-tight">Đơn thuốc</h2>
+                  <p className="text-muted-foreground text-sm mt-1">
                     Xem và quản lý đơn thuốc của bạn
                   </p>
                 </div>
+                {!loadingPres && prescriptions && (
+                  <Badge variant="outline" className="text-sm px-3 py-1">
+                    {(Array.isArray(prescriptions) ? prescriptions : prescriptions?.items || []).length} đơn thuốc
+                  </Badge>
+                )}
               </div>
 
               {/* Prescriptions List */}
-              <Card className="border-border/20">
-                <CardContent className="p-6">
-                  {loadingPres ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      <span className="ml-3 text-muted-foreground">
-                        Đang tải đơn thuốc...
-                      </span>
-                    </div>
-                  ) : !prescriptions ||
-                    (Array.isArray(prescriptions) &&
-                      prescriptions.length === 0) ||
-                    (prescriptions?.items &&
-                      Array.isArray(prescriptions.items) &&
-                      prescriptions.items.length === 0) ? (
-                    <div className="text-center py-12">
-                      <Pill className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        Không có đơn thuốc
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Bạn chưa có đơn thuốc nào đang hoạt động
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {(Array.isArray(prescriptions)
-                        ? prescriptions
-                        : prescriptions?.items || []
-                      ).map((pr: Prescription) => (
-                        <Card
-                          key={pr.id}
-                          className="border-border/20 hover:shadow-md transition-all duration-200 cursor-pointer group"
-                          onClick={() => setSelectedPrescriptionId(pr.id)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-4">
-                              <div className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 text-white flex items-center justify-center text-base font-semibold">
+              {loadingPres ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-3 text-muted-foreground">Đang tải đơn thuốc...</span>
+                </div>
+              ) : !prescriptions ||
+                (Array.isArray(prescriptions) && prescriptions.length === 0) ||
+                (prescriptions?.items && Array.isArray(prescriptions.items) && prescriptions.items.length === 0) ? (
+                <Card className="p-12">
+                  <div className="text-center text-muted-foreground">
+                    <Pill className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Không có đơn thuốc</h3>
+                    <p className="text-sm">Bạn chưa có đơn thuốc nào đang hoạt động</p>
+                  </div>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {(Array.isArray(prescriptions) ? prescriptions : prescriptions?.items || []).map((pr: Prescription) => (
+                    <Card
+                      key={pr.id}
+                      className="border-border/20 hover:shadow-lg transition-all duration-200 cursor-pointer group overflow-hidden border-l-4 border-l-primary"
+                      onClick={() => setSelectedPrescriptionId(pr.id)}
+                    >
+                      <CardContent className="p-0">
+                        <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-5 py-4 border-b">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 text-white flex items-center justify-center text-base font-semibold shadow-sm">
                                 RX
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-3 mb-2">
-                                  <div className="min-w-0">
-                                    <h3 className="text-sm font-semibold text-foreground truncate">
-                                      Đơn thuốc #{pr.id.slice(-8)}
-                                    </h3>
-                                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                                      <Badge
-                                        className={`text-xs ${getStatusColor(
-                                          pr.status
-                                        )}`}
-                                      >
-                                        {getStatusText(pr.status)}
-                                      </Badge>
-                                      <span className="h-3 w-px bg-border/50" />
-                                      <span>{formatDate(pr.startDate)}</span>
-                                    </div>
-                                  </div>
-                                  {pr.doctor?.fullName && (
-                                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
-                                      {pr.doctor.fullName.charAt(0)}
-                                    </div>
-                                  )}
+                              <div>
+                                <h3 className="text-sm font-semibold text-foreground">
+                                  Đơn thuốc #{pr.id.slice(-8)}
+                                </h3>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <Badge className={`text-xs ${getStatusColor(pr.status)} border font-medium`}>
+                                    {getStatusText(pr.status)}
+                                  </Badge>
                                 </div>
-                                {pr.notes && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {pr.notes}
-                                  </p>
-                                )}
-                                {pr.doctor?.fullName && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Bác sĩ: {pr.doctor.fullName}
-                                  </p>
-                                )}
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                            {pr.doctor?.fullName && (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center text-sm font-semibold border-2 border-primary/20">
+                                {pr.doctor.fullName.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-5">
+                          <div className="space-y-3">
+                            {pr.doctor?.fullName && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-foreground font-medium">{pr.doctor.fullName}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              <span>Bắt đầu: {formatDate(pr.startDate)}</span>
+                            </div>
+                            {pr.notes && (
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-xs font-medium text-blue-900 mb-1">Ghi chú</p>
+                                <p className="text-sm text-blue-800 line-clamp-2">{pr.notes}</p>
+                              </div>
+                            )}
+                            {Array.isArray(pr.items) && pr.items.length > 0 && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Pill className="h-3 w-3" />
+                                <span>{pr.items.length} {pr.items.length === 1 ? "loại thuốc" : "loại thuốc"}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
               {/* Prescription Detail Dialog */}
               {selectedPrescriptionId && (
@@ -1610,7 +1683,7 @@ export default function PatientPage() {
                                         <div className="flex items-start justify-between gap-4">
                                           <div className="min-w-0 flex-1">
                                             <h4 className="text-sm font-semibold text-foreground mb-3">
-                                              {item.medicationName || "Thuốc"}
+                                              {item.medicationName || (item as any).medication?.name || (item as any).prescriptionItem?.medication?.name || "Thuốc"}
                                             </h4>
                                             <div className="flex flex-wrap gap-2 mb-3">
                                               <Badge
@@ -1685,17 +1758,24 @@ export default function PatientPage() {
                                   }
                                 >
                                   <option value="">Chọn thuốc trong đơn</option>
-                                  {Array.isArray(
-                                    (prescriptionDetail as Prescription)?.items
-                                  ) &&
-                                    (
-                                      prescriptionDetail as Prescription
-                                    ).items.map((item: PrescriptionItem) => (
-                                      <option key={item.id} value={item.id}>
-                                        {item.medicationName || "Thuốc"} —{" "}
-                                        {item.dosage}
-                                      </option>
-                                    ))}
+                                    {Array.isArray(
+                                      (prescriptionDetail as Prescription)?.items
+                                    ) &&
+                                      (
+                                        prescriptionDetail as Prescription
+                                      ).items.map((item: PrescriptionItem) => {
+                                        const medicationName = 
+                                          item.medicationName || 
+                                          (item as any).medication?.name || 
+                                          (item as any).prescriptionItem?.medication?.name || 
+                                          "Thuốc";
+                                        
+                                        return (
+                                          <option key={item.id} value={item.id}>
+                                            {medicationName} — {item.dosage}
+                                          </option>
+                                        );
+                                      })}
                                 </select>
                                 <Button
                                   onClick={handleConfirmIntake}
@@ -1722,87 +1802,158 @@ export default function PatientPage() {
 
           {/* History */}
           {activeTab === "history" && (
-            <div className="rounded-xl border border-border/20 bg-card p-4">
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Lịch sử điều trị</h2>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Xem lại các đơn thuốc và quá trình điều trị của bạn
+                  </p>
+                </div>
+              </div>
+
               {loadingHistory ? (
-                <div className="text-muted-foreground">Đang tải...</div>
-              ) : (
-                <>
-                  <div className="space-y-3">
-                    {Array.isArray((history as any)?.items) ? (
-                      (history as any).items.map((h: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="rounded-xl border border-border/20 p-4 bg-background/60"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium ${
-                                    h.status === "COMPLETED"
-                                      ? "bg-emerald-100 text-emerald-700"
-                                      : "bg-zinc-100 text-zinc-700"
-                                  }`}
-                                >
-                                  {getStatusText(h.status)}
-                                </span>
-                                {h.doctor?.fullName && (
-                                  <span className="text-xs text-muted-foreground">
-                                    Bác sĩ: {h.doctor.fullName}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                Bắt đầu:{" "}
-                                {h.startDate
-                                  ? new Date(h.startDate).toLocaleString()
-                                  : "-"}
-                              </div>
-                              {h.endDate && (
-                                <div className="text-xs text-muted-foreground">
-                                  Kết thúc:{" "}
-                                  {new Date(h.endDate).toLocaleString()}
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-3 text-muted-foreground">Đang tải...</span>
+                </div>
+              ) : Array.isArray((history as any)?.items) && (history as any).items.length > 0 ? (
+                <div className="space-y-4">
+                  {(history as any).items.map((h: any, idx: number) => {
+                    const startDate = h.startDate ? new Date(h.startDate) : null;
+                    const endDate = h.endDate ? new Date(h.endDate) : null;
+                    const formatDate = (date: Date) => {
+                      return date.toLocaleDateString("vi-VN", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                    };
+
+                    return (
+                      <Card
+                        key={idx}
+                        className="overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border-l-4 border-l-primary"
+                      >
+                        <CardContent className="p-0">
+                          <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 px-6 py-4 border-b">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 text-white flex items-center justify-center text-base font-semibold shadow-sm">
+                                  RX
                                 </div>
-                              )}
-                              {h.notes && (
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                  Ghi chú: {h.notes}
-                                </div>
-                              )}
-                              {Array.isArray(h.items) && h.items.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {h.items.slice(0, 4).map((it: any) => (
-                                    <span
-                                      key={it.id}
-                                      className="inline-flex px-2 py-0.5 rounded-md text-[11px] bg-primary/10 text-primary"
+                                <div>
+                                  <div className="flex items-center gap-3">
+                                    <Badge
+                                      className={`${
+                                        h.status === "COMPLETED"
+                                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                          : h.status === "ACTIVE"
+                                          ? "bg-blue-100 text-blue-700 border-blue-200"
+                                          : "bg-slate-100 text-slate-700 border-slate-200"
+                                      } border font-medium`}
                                     >
-                                      {it.medicationName || "Thuốc"} •{" "}
-                                      {it.dosage}
-                                    </span>
-                                  ))}
-                                  {h.items.length > 4 && (
-                                    <span className="inline-flex px-2 py-0.5 rounded-md text-[11px] bg-accent/40 text-foreground">
-                                      +{h.items.length - 4} thuốc
-                                    </span>
-                                  )}
+                                      {getStatusText(h.status)}
+                                    </Badge>
+                                    {h.doctor?.fullName && (
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-sm font-medium text-foreground">
+                                          {h.doctor.fullName}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                    {startDate && (
+                                      <div className="flex items-center gap-1">
+                                        <Calendar className="h-3 w-3" />
+                                        <span>Bắt đầu: {formatDate(startDate)}</span>
+                                      </div>
+                                    )}
+                                    {endDate && (
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        <span>Kết thúc: {formatDate(endDate)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {h.doctor?.fullName && (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-primary flex items-center justify-center text-sm font-semibold border-2 border-primary/20">
+                                  {(h.doctor.fullName || "BS").charAt(0)}
                                 </div>
                               )}
-                            </div>
-                            <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
-                              {(h.doctor?.fullName || "BS")
-                                .toString()
-                                .charAt(0)}
                             </div>
                           </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-xs text-muted-foreground">
-                        Không có dữ liệu
-                      </div>
-                    )}
+
+                          <div className="p-6">
+                            {h.notes && (
+                              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-start gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-blue-900 mb-1">Ghi chú</p>
+                                    <p className="text-sm text-blue-800">{h.notes}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {Array.isArray(h.items) && h.items.length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                  <Pill className="h-4 w-4 text-primary" />
+                                  Danh sách thuốc ({h.items.length})
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {h.items.map((it: any) => {
+                                    // Try multiple sources for medication name
+                                    const medicationName = 
+                                      it.medicationName || 
+                                      it.medication?.name || 
+                                      it.prescriptionItem?.medication?.name || 
+                                      "Thuốc";
+                                    
+                                    return (
+                                      <div
+                                        key={it.id}
+                                        className="flex items-center gap-2 p-3 rounded-lg border border-border/20 bg-background hover:bg-muted/50 transition-colors"
+                                      >
+                                        <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                          <Pill className="h-4 w-4" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-medium text-foreground truncate">
+                                            {medicationName}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {it.dosage}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Card className="p-12">
+                  <div className="text-center text-muted-foreground">
+                    <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">Không có lịch sử điều trị</p>
                   </div>
-                </>
+                </Card>
               )}
             </div>
           )}
@@ -1956,36 +2107,55 @@ export default function PatientPage() {
               </div>
 
               {/* Reminders List */}
-              <div className="rounded-xl border border-border/20 bg-card p-6">
-                {loadingReminders ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <span className="ml-3 text-muted-foreground">
-                      Đang tải nhắc nhở...
-                    </span>
-                  </div>
-                ) : sortedReminders.length > 0 ? (
-                  <div className="space-y-4">
-                    {sortedReminders.map((r: any, idx: number) => (
+              {loadingReminders ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-3 text-muted-foreground">Đang tải nhắc nhở...</span>
+                </div>
+              ) : sortedReminders.length > 0 ? (
+                <div className="space-y-4">
+                  {sortedReminders.map((r: any, idx: number) => {
+                    const isActive = r.status === "PENDING" && isToday && isWithinTimeSlot(r.time);
+                    const isTaken = r.status === "TAKEN";
+                    const isMissed = r.status === "MISSED";
+                    const isSkipped = r.status === "SKIPPED";
+
+                    return (
                       <Card
                         key={idx}
-                        className={`${(r.status === "PENDING" && isToday && isWithinTimeSlot(r.time)) ? "border-green-400 ring-2 ring-green-200" : "border-border/20"} hover:shadow-md transition-all duration-200`}
+                        className={`${
+                          isActive
+                            ? "border-emerald-400 ring-2 ring-emerald-200 bg-emerald-50/30"
+                            : isTaken
+                            ? "border-emerald-200 bg-emerald-50/20"
+                            : isMissed
+                            ? "border-amber-200 bg-amber-50/20"
+                            : isSkipped
+                            ? "border-slate-200 bg-slate-50/20"
+                            : "border-border/20"
+                        } hover:shadow-lg transition-all duration-200 overflow-hidden`}
                       >
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-4">
+                        <CardContent className="p-0">
+                          <div className="flex items-start gap-4 p-5">
                             {/* Time Badge */}
                             <div className="shrink-0">
-                              <div className={`w-16 h-16 rounded-xl text-white flex flex-col items-center justify-center ${
-                                (r.status === "PENDING" && isToday && isWithinTimeSlot(r.time))
-                                  ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
-                                  : "bg-gradient-to-br from-blue-500 to-blue-600"
-                              }`}>
+                              <div
+                                className={`w-16 h-16 rounded-xl text-white flex flex-col items-center justify-center shadow-sm ${
+                                  isActive
+                                    ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                                    : isTaken
+                                    ? "bg-gradient-to-br from-emerald-400 to-emerald-500"
+                                    : isMissed
+                                    ? "bg-gradient-to-br from-amber-500 to-amber-600"
+                                    : isSkipped
+                                    ? "bg-gradient-to-br from-slate-400 to-slate-500"
+                                    : "bg-gradient-to-br from-blue-500 to-blue-600"
+                                }`}
+                              >
                                 <div className="text-lg font-bold">
                                   {r.time?.slice?.(0, 5) || "--:--"}
                                 </div>
-                                <div className="text-xs opacity-90">
-                                  Hôm nay
-                                </div>
+                                <div className="text-xs opacity-90">Hôm nay</div>
                               </div>
                             </div>
 
@@ -2111,59 +2281,52 @@ export default function PatientPage() {
 
                               {/* Show info message for non-today dates */}
                               {r.status === "PENDING" && !isToday && (
-                                <div className="mt-4 flex items-center gap-2 text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
+                                <div className="mt-4 flex items-center gap-2 text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border/20">
                                   <Clock className="h-4 w-4" />
-                                  <span className="text-sm">
-                                    Chỉ có thể thực hiện hành động vào ngày hôm
-                                    nay
-                                  </span>
+                                  <span className="text-sm">Chỉ có thể thực hiện hành động vào ngày hôm nay</span>
                                 </div>
                               )}
 
                               {/* Show completion message for taken medications */}
                               {r.status === "TAKEN" && (
-                                <div className="mt-4 flex items-center gap-2 text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+                                <div className="mt-4 flex items-center gap-2 text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
                                   <CheckCircle className="h-4 w-4" />
-                                  <span className="text-sm font-medium">
-                                    Đã xác nhận uống thuốc
-                                  </span>
+                                  <span className="text-sm font-medium">Đã xác nhận uống thuốc</span>
                                 </div>
                               )}
 
                               {/* Show missed message */}
                               {r.status === "MISSED" && (
-                                <div className="mt-4 flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">
+                                <div className="mt-4 flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
                                   <XCircle className="h-4 w-4" />
-                                  <span className="text-sm font-medium">
-                                    Đã đánh dấu bỏ lỡ
-                                  </span>
+                                  <span className="text-sm font-medium">Đã đánh dấu bỏ lỡ</span>
                                 </div>
                               )}
 
                               {/* Show skipped message */}
                               {r.status === "SKIPPED" && (
-                                <div className="mt-4 flex items-center gap-2 text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">
+                                <div className="mt-4 flex items-center gap-2 text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200">
                                   <XCircle className="h-4 w-4" />
-                                  <span className="text-sm font-medium">
-                                    Đã bỏ qua
-                                  </span>
+                                  <span className="text-sm font-medium">Đã bỏ qua</span>
                                 </div>
                               )}
                             </div>
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Clock className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                    );
+                  })}
+                </div>
+              ) : (
+                <Card className="p-12">
+                  <div className="text-center text-muted-foreground">
+                    <Clock className="h-16 w-16 mx-auto mb-4 opacity-50" />
                     <h3 className="text-lg font-semibold text-foreground mb-2">
                       {selectedTimeFilter === "all"
                         ? "Không có nhắc nhở"
                         : `Không có nhắc nhở buổi ${selectedTimeFilter}`}
                     </h3>
-                    <p className="text-muted-foreground">
+                    <p className="text-sm">
                       {selectedTimeFilter === "all"
                         ? "Bạn không có lịch uống thuốc nào cho ngày này"
                         : `Bạn không có lịch uống thuốc nào cho buổi ${selectedTimeFilter}`}
@@ -2179,8 +2342,8 @@ export default function PatientPage() {
                       </Button>
                     )}
                   </div>
-                )}
-              </div>
+                </Card>
+              )}
             </div>
           )}
 
@@ -2190,143 +2353,170 @@ export default function PatientPage() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold tracking-tight">
-                    Cảnh báo
-                  </h2>
-                  <p className="text-muted-foreground">
+                  <h2 className="text-2xl font-bold tracking-tight">Cảnh báo</h2>
+                  <p className="text-muted-foreground text-sm mt-1">
                     Thông báo và nhắc nhở từ bác sĩ
                   </p>
                 </div>
-                {Array.isArray(alerts) &&
-                  alerts.filter((a: any) => !a.resolved).length > 0 && (
-                    <Badge variant="destructive" className="text-sm px-3 py-1">
-                      {alerts.filter((a: any) => !a.resolved).length} chưa xử lý
-                    </Badge>
-                  )}
+                {Array.isArray(alerts) && alerts.filter((a: any) => !a.resolved).length > 0 && (
+                  <Badge variant="destructive" className="text-sm px-3 py-1.5 shadow-sm">
+                    {alerts.filter((a: any) => !a.resolved).length} chưa xử lý
+                  </Badge>
+                )}
               </div>
 
-              <Card className="border-border/20">
-                <CardContent className="p-6">
-                  {loadingAlerts ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      <span className="ml-3 text-muted-foreground">
-                        Đang tải cảnh báo...
-                      </span>
-                    </div>
-                  ) : Array.isArray(alerts) && alerts.length > 0 ? (
-                    <div className="space-y-4">
-                      {alerts.map((a: any, idx: number) => (
-                        <Card
-                          key={idx}
-                          className={`border-l-4 ${
-                            a.resolved
-                              ? "border-l-emerald-500 bg-emerald-50/30"
-                              : "border-l-amber-500 bg-amber-50/30"
-                          } hover:shadow-md transition-all duration-200`}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-4">
-                              <div
-                                className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${
-                                  a.resolved
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-700 animate-pulse"
-                                }`}
-                              >
-                                !
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-3 mb-2">
-                                  <div className="min-w-0">
-                                    <h3 className="text-lg font-semibold text-foreground">
-                                      {a.type === "MISSED_DOSE"
-                                        ? "Bỏ liều thuốc"
-                                        : a.type === "LOW_ADHERENCE"
-                                        ? "Nhắc nhở từ bác sĩ"
-                                        : "Cảnh báo"}
-                                    </h3>
-                                    <div className="mt-1 flex items-center gap-2">
-                                      <Badge
-                                        className={`text-xs ${
-                                          a.resolved
-                                            ? "bg-emerald-100 text-emerald-700"
-                                            : "bg-amber-100 text-amber-700"
-                                        }`}
-                                      >
-                                        {a.resolved ? "Đã xử lý" : "Chưa xử lý"}
-                                      </Badge>
-                                      {a.prescriptionId && (
-                                        <>
-                                          <span className="h-3 w-px bg-border/50" />
-                                          <span className="text-xs text-muted-foreground">
-                                            Đơn thuốc
-                                          </span>
-                                        </>
-                                      )}
-                                    </div>
+              {loadingAlerts ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-3 text-muted-foreground">Đang tải cảnh báo...</span>
+                </div>
+              ) : Array.isArray(alerts) && alerts.length > 0 ? (
+                <div className="space-y-4">
+                  {alerts.map((a: any, idx: number) => {
+                    const isResolved = a.resolved;
+                    const alertType = a.type === "MISSED_DOSE"
+                      ? "Bỏ liều thuốc"
+                      : a.type === "LOW_ADHERENCE"
+                      ? "Nhắc nhở từ bác sĩ"
+                      : "Cảnh báo";
+
+                    return (
+                      <Card
+                        key={idx}
+                        className={`overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 ${
+                          isResolved
+                            ? "border-l-4 border-l-emerald-500 bg-gradient-to-r from-emerald-50/50 to-emerald-50/20"
+                            : "border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50/50 to-amber-50/20"
+                        }`}
+                      >
+                        <CardContent className="p-0">
+                          <div className="flex items-start gap-4 p-5">
+                            {/* Icon */}
+                            <div
+                              className={`shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-xl font-bold shadow-sm ${
+                                isResolved
+                                  ? "bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-700"
+                                  : "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700"
+                              } ${!isResolved ? "animate-pulse" : ""}`}
+                            >
+                              <AlertTriangle className="h-6 w-6" />
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="min-w-0">
+                                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                                    {alertType}
+                                  </h3>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge
+                                      className={`text-xs border font-medium ${
+                                        isResolved
+                                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                          : "bg-amber-100 text-amber-700 border-amber-200"
+                                      }`}
+                                    >
+                                      {isResolved ? "Đã xử lý" : "Chưa xử lý"}
+                                    </Badge>
+                                    {a.prescriptionId && (
+                                      <>
+                                        <span className="h-3 w-px bg-border/50" />
+                                        <Badge variant="outline" className="text-xs">
+                                          Đơn thuốc
+                                        </Badge>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
-
-                                {a.message && (
-                                  <div className="mt-3 p-3 bg-background/60 rounded-lg border border-border/20">
-                                    <p className="text-sm text-foreground leading-relaxed">
-                                      {a.message}
-                                    </p>
-                                  </div>
-                                )}
-
-                                {!a.resolved && (
-                                  <div className="mt-4 flex items-center gap-3">
-                                    <Button
-                                      size="sm"
-                                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                      onClick={() => handleResolveAlert(a.id)}
-                                      disabled={
-                                        loadingActions[`resolve-${a.id}`]
-                                      }
-                                    >
-                                      {loadingActions[`resolve-${a.id}`] ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                      ) : (
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                      )}
-                                      Đánh dấu đã đọc
-                                    </Button>
-                                    <span className="text-xs text-muted-foreground">
-                                      Nhấn để xác nhận bạn đã đọc thông báo này
-                                    </span>
-                                  </div>
-                                )}
                               </div>
+
+                              {a.message && (
+                                <div className="mt-3 p-4 bg-background/80 rounded-lg border border-border/20 shadow-sm">
+                                  <p className="text-sm text-foreground leading-relaxed">
+                                    {a.message}
+                                  </p>
+                                </div>
+                              )}
+
+                              {!isResolved && (
+                                <div className="mt-4 flex items-center gap-3 flex-wrap">
+                                  <Button
+                                    size="sm"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                    onClick={() => handleResolveAlert(a.id)}
+                                    disabled={loadingActions[`resolve-${a.id}`]}
+                                  >
+                                    {loadingActions[`resolve-${a.id}`] ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    ) : (
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                    )}
+                                    Đánh dấu đã đọc
+                                  </Button>
+                                  <span className="text-xs text-muted-foreground">
+                                    Nhấn để xác nhận bạn đã đọc thông báo này
+                                  </span>
+                                </div>
+                              )}
+
+                              {isResolved && (
+                                <div className="mt-4 flex items-center gap-2 text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Đã xử lý</span>
+                                </div>
+                              )}
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        Không có cảnh báo
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Bạn không có cảnh báo nào từ bác sĩ
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Card className="p-12">
+                  <div className="text-center text-muted-foreground">
+                    <AlertTriangle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Không có cảnh báo</h3>
+                    <p className="text-sm">Bạn không có cảnh báo nào từ bác sĩ</p>
+                  </div>
+                </Card>
+              )}
             </div>
           )}
 
           {/* Adherence */}
           {activeTab === "adherence" && (
-            <div className="rounded-xl border border-border/20 bg-card p-4">
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Lịch sử tuân thủ</h2>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Theo dõi lịch sử uống thuốc của bạn
+                  </p>
+                </div>
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsExportDialogOpen(true);
+                  }}
+                  variant="outline"
+                  className="gap-2 shadow-sm"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4" />
+                  Xuất Báo Cáo
+                </Button>
+              </div>
+
               {loadingAdherence ? (
-                <div className="text-muted-foreground">Đang tải...</div>
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-muted-foreground">Đang tải...</div>
+                </div>
               ) : Array.isArray(adherence) ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {(() => {
                     const logs = (adherence as any[]) || [];
                     const taken = logs.filter(
@@ -2338,8 +2528,10 @@ export default function PatientPage() {
                     const skipped = logs.filter(
                       (l) => l.status === "SKIPPED"
                     ).length;
-                    // Remove rate calculation since we're not showing adherence rate anymore
-                    // group by date
+                    const total = taken + missed + skipped;
+                    const adherenceRate = total > 0 ? Math.round((taken / total) * 100) : 0;
+
+                    // Group by date
                     const groups: Record<string, any[]> = {};
                     logs.forEach((l) => {
                       const d = new Date(l.takenAt);
@@ -2352,86 +2544,201 @@ export default function PatientPage() {
                     const orderedDates = Object.keys(groups).sort((a, b) =>
                       a < b ? 1 : -1
                     );
+
+                    // Format date to Vietnamese
+                    const formatDate = (dateStr: string) => {
+                      if (dateStr === "Khác") return dateStr;
+                      const date = new Date(dateStr);
+                      const days = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
+                      const dayName = days[date.getDay()];
+                      return `${dayName}, ${date.toLocaleDateString("vi-VN")}`;
+                    };
+
                     return (
                       <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div className="rounded-lg border border-border/20 p-4">
-                            <div className="text-[11px] text-muted-foreground">
-                              Đã uống
-                            </div>
-                            <div className="mt-1 text-2xl font-bold text-emerald-700">
-                              {taken}
-                            </div>
-                          </div>
-                          <div className="rounded-lg border border-border/20 p-4">
-                            <div className="text-[11px] text-muted-foreground">
-                              Bỏ liều
-                            </div>
-                            <div className="mt-1 text-2xl font-bold text-amber-700">
-                              {missed}
-                            </div>
-                          </div>
-                          <div className="rounded-lg border border-border/20 p-4">
-                            <div className="text-[11px] text-muted-foreground">
-                              Bỏ qua
-                            </div>
-                            <div className="mt-1 text-2xl font-bold text-zinc-700">
-                              {skipped}
-                            </div>
-                          </div>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm hover:shadow-md transition-shadow">
+                            <CardContent className="p-5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-emerald-700 mb-1">Đã uống</p>
+                                  <p className="text-3xl font-bold text-emerald-700">{taken}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-emerald-200 flex items-center justify-center">
+                                  <CheckCircle className="h-6 w-6 text-emerald-600" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/50 shadow-sm hover:shadow-md transition-shadow">
+                            <CardContent className="p-5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-amber-700 mb-1">Bỏ liều</p>
+                                  <p className="text-3xl font-bold text-amber-700">{missed}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-amber-200 flex items-center justify-center">
+                                  <XCircle className="h-6 w-6 text-amber-600" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 shadow-sm hover:shadow-md transition-shadow">
+                            <CardContent className="p-5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-slate-700 mb-1">Bỏ qua</p>
+                                  <p className="text-3xl font-bold text-slate-700">{skipped}</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-slate-200 flex items-center justify-center">
+                                  <Clock className="h-6 w-6 text-slate-600" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 shadow-sm hover:shadow-md transition-shadow">
+                            <CardContent className="p-5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-blue-700 mb-1">Tỷ lệ tuân thủ</p>
+                                  <p className="text-3xl font-bold text-blue-700">{adherenceRate}%</p>
+                                </div>
+                                <div className="h-12 w-12 rounded-full bg-blue-200 flex items-center justify-center">
+                                  <Activity className="h-6 w-6 text-blue-600" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         </div>
 
-                        <div className="space-y-3">
-                          {orderedDates.map((dateKey) => (
-                            <div
-                              key={dateKey}
-                              className="rounded-xl border border-border/20 p-4 bg-background/60"
-                            >
-                              <div className="text-xs font-medium text-muted-foreground mb-2">
-                                {dateKey}
+                        {/* Timeline */}
+                        <div className="space-y-4">
+                          {orderedDates.length === 0 ? (
+                            <Card className="p-12">
+                              <div className="text-center text-muted-foreground">
+                                <Pill className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p className="text-sm">Chưa có lịch sử tuân thủ</p>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                {groups[dateKey].map((log) => (
-                                  <div
-                                    key={log.id}
-                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border/20 bg-background"
-                                  >
-                                    <span className="text-xs text-muted-foreground">
-                                      {new Date(log.takenAt).toLocaleTimeString(
-                                        [],
-                                        { hour: "2-digit", minute: "2-digit" }
-                                      )}
-                                    </span>
-                                    <span
-                                      className={`${
-                                        log.status === "TAKEN"
-                                          ? "bg-emerald-100 text-emerald-700"
-                                          : log.status === "MISSED"
-                                          ? "bg-amber-100 text-amber-700"
-                                          : "bg-zinc-100 text-zinc-700"
-                                      } inline-flex px-2 py-0.5 rounded-md text-[11px] font-medium`}
-                                    >
-                                      {getStatusText(log.status)}
-                                    </span>
-                                    {log.notes && !log.notes.includes("-") && (
-                                      <span className="text-[11px] text-muted-foreground">
-                                        • {log.notes}
-                                      </span>
-                                    )}
+                            </Card>
+                          ) : (
+                            orderedDates.map((dateKey) => (
+                              <Card key={dateKey} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 px-6 py-4 border-b">
+                                  <div className="flex items-center gap-3">
+                                    <Calendar className="h-5 w-5 text-slate-600" />
+                                    <h3 className="font-semibold text-slate-900">
+                                      {formatDate(dateKey)}
+                                    </h3>
+                                    <Badge variant="outline" className="ml-auto">
+                                      {groups[dateKey].length} {groups[dateKey].length === 1 ? "sự kiện" : "sự kiện"}
+                                    </Badge>
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                                </div>
+                                <CardContent className="p-0">
+                                  <div className="relative">
+                                    {/* Timeline line */}
+                                    <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-slate-200" />
+                                    
+                                    <div className="py-4 space-y-3">
+                                      {groups[dateKey]
+                                        .sort((a, b) => {
+                                          const timeA = new Date(a.takenAt).getTime();
+                                          const timeB = new Date(b.takenAt).getTime();
+                                          return timeB - timeA; // Most recent first
+                                        })
+                                        .map((log) => {
+                                          const time = new Date(log.takenAt);
+                                          const timeStr = time.toLocaleTimeString("vi-VN", {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          });
+                                          
+                                          const statusConfig = {
+                                            TAKEN: {
+                                              icon: CheckCircle,
+                                              bg: "bg-emerald-100",
+                                              text: "text-emerald-700",
+                                              border: "border-emerald-200",
+                                              label: "Đã uống",
+                                            },
+                                            MISSED: {
+                                              icon: XCircle,
+                                              bg: "bg-amber-100",
+                                              text: "text-amber-700",
+                                              border: "border-amber-200",
+                                              label: "Đã bỏ lỡ",
+                                            },
+                                            SKIPPED: {
+                                              icon: Clock,
+                                              bg: "bg-slate-100",
+                                              text: "text-slate-700",
+                                              border: "border-slate-200",
+                                              label: "Đã bỏ qua",
+                                            },
+                                          };
+
+                                          const config = statusConfig[log.status as keyof typeof statusConfig] || statusConfig.SKIPPED;
+                                          const StatusIcon = config.icon;
+
+                                          return (
+                                            <div
+                                              key={log.id}
+                                              className="relative flex items-start gap-4 px-6 py-3 hover:bg-slate-50/50 transition-colors"
+                                            >
+                                              {/* Timeline dot */}
+                                              <div className={`relative z-10 flex-shrink-0 mt-1 h-4 w-4 rounded-full border-2 ${config.border} ${config.bg} flex items-center justify-center`}>
+                                                <StatusIcon className={`h-2.5 w-2.5 ${config.text}`} />
+                                              </div>
+
+                                              {/* Content */}
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                  <Badge
+                                                    className={`${config.bg} ${config.text} ${config.border} border font-medium`}
+                                                  >
+                                                    {config.label}
+                                                  </Badge>
+                                                  <span className="text-sm font-medium text-slate-900">
+                                                    {timeStr}
+                                                  </span>
+                                                  {log.prescriptionItem?.medication?.name && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                      {log.prescriptionItem.medication.name}
+                                                      {log.prescriptionItem.dosage && ` • ${log.prescriptionItem.dosage}`}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                {log.notes && !log.notes.includes("-") && (
+                                                  <p className="text-xs text-muted-foreground mt-1.5">
+                                                    {log.notes}
+                                                  </p>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))
+                          )}
                         </div>
                       </>
                     );
                   })()}
                 </div>
               ) : (
-                <div className="text-xs text-muted-foreground">
-                  Không có dữ liệu
-                </div>
+                <Card className="p-12">
+                  <div className="text-center text-muted-foreground">
+                    <Pill className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-sm">Không có dữ liệu</p>
+                  </div>
+                </Card>
               )}
             </div>
           )}
@@ -2609,6 +2916,74 @@ export default function PatientPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+      {/* Export Adherence History Dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xuất Báo Cáo Lịch Sử Dùng Thuốc</DialogTitle>
+            <DialogDescription>
+              Chọn khoảng thời gian để xuất báo cáo lịch sử dùng thuốc ra file Excel
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Từ ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportFilters.startDate || ""}
+                  onChange={(e) => setExportFilters({ ...exportFilters, startDate: e.target.value || undefined })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Đến ngày</label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportFilters.endDate || ""}
+                  onChange={(e) => setExportFilters({ ...exportFilters, endDate: e.target.value || undefined })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button
+              onClick={() => {
+                const cleanFilters = Object.fromEntries(
+                  Object.entries(exportFilters).filter(([_, value]) => value !== undefined && value !== "")
+                );
+                exportMutation.mutate(cleanFilters);
+              }}
+              disabled={exportMutation.isPending}
+            >
+              {exportMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Time Validation Dialog */}
+      <TimeValidationDialog
+        open={timeValidationDialog.open}
+        onOpenChange={(open) => {
+          console.log("Dialog onOpenChange:", open);
+          setTimeValidationDialog((prev) => ({ ...prev, open }));
+        }}
+        onConfirm={() => {
+          console.log("Dialog onConfirm");
+          if (timeValidationDialog.reminder) {
+            confirmIntakeAction(timeValidationDialog.reminder);
+          }
+        }}
+        medicationName={timeValidationDialog.reminder?.medicationName || ""}
+        timeSlot={formatTimeSlot(timeValidationDialog.reminder?.time || "")}
+        currentTimeSlot={getCurrentTimeInVietnamese()}
+      />
       </main>
     );
   }
@@ -2628,24 +3003,6 @@ export default function PatientPage() {
           </p>
         </div>
       </div>
-
-      {/* Time Validation Dialog */}
-      <TimeValidationDialog
-        open={timeValidationDialog.open}
-        onOpenChange={(open) => {
-          console.log("Dialog onOpenChange:", open);
-          setTimeValidationDialog((prev) => ({ ...prev, open }));
-        }}
-        onConfirm={() => {
-          console.log("Dialog onConfirm");
-          if (timeValidationDialog.reminder) {
-            confirmIntakeAction(timeValidationDialog.reminder);
-          }
-        }}
-        medicationName={timeValidationDialog.reminder?.medicationName || ""}
-        timeSlot={formatTimeSlot(timeValidationDialog.reminder?.time || "")}
-        currentTimeSlot={getCurrentTimeInVietnamese()}
-      />
     </main>
   );
 }
