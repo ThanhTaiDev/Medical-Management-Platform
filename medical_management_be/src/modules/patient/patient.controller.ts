@@ -7,8 +7,10 @@ import {
   Param,
   Post,
   Put,
-  Query
+  Query,
+  Res
 } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import { PatientService } from './patient.service';
 import { UserInfo } from '@/common/decorators/users.decorator';
 import { IUserFromToken } from '@/modules/users/types/user.type';
@@ -152,6 +154,44 @@ export class PatientController {
   async adherence(@UserInfo() user: IUserFromToken) {
     this.ensurePatient(user);
     return this.patientService.adherenceHistory(user.id);
+  }
+
+  @Post('adherence/export')
+  @SkipTransform()
+  async exportAdherenceHistory(
+    @UserInfo() user: IUserFromToken,
+    @Res() reply: FastifyReply,
+    @Body() body?: {
+      startDate?: string;
+      endDate?: string;
+    }
+  ) {
+    this.ensurePatient(user);
+
+    try {
+      const buffer = await this.patientService.exportMedicationHistory(
+        user.id,
+        body
+      );
+      const fileName = `bao-cao-lich-su-dung-thuoc-${new Date().toISOString().split('T')[0]}.xlsx`;
+      const excelBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+
+      reply
+        .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .header('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`)
+        .send(excelBuffer);
+    } catch (error: any) {
+      console.error('Error exporting adherence history:', error);
+      const errorMessage = error?.message || 'Lỗi khi xuất báo cáo';
+      reply
+        .code(HttpStatus.INTERNAL_SERVER_ERROR)
+        .header('Content-Type', 'application/json')
+        .send({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: errorMessage,
+          error: 'Internal Server Error'
+        });
+    }
   }
 
   @Get('overview')
