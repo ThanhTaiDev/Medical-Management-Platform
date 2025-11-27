@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -29,8 +30,8 @@ import {
 import toast from "react-hot-toast";
 import { MedicationsApi, MedicationDto } from "@/api/medications";
 import { UsersApi } from "@/api/user";
+import { userApi } from "@/api/user/user.api";
 import { patientApi } from "@/api/patient/patient.api";
-import { doctorApi } from "@/api/doctor/doctor.api";
 import { majorApi } from "@/api/major/major.api";
 import {
   User as DoctorUser,
@@ -51,7 +52,9 @@ import {
   Pill,
   Stethoscope,
   FileSliders,
+  Download,
 } from "lucide-react";
+import { PrescriptionApi } from "@/api/prescription/prescription.api";
 import { getGenderLabel } from "@/utils/gender";
 
 const toArray = (payload: any): any[] => {
@@ -345,8 +348,9 @@ const DoctorManagement: React.FC = () => {
   const { data: doctorsData, isLoading: loadingDoctors } = useQuery({
     queryKey: doctorsQueryKey,
     queryFn: () =>
-      doctorApi.getDoctorList({
-        q: doctorSearch || undefined,
+      userApi.getUsers({
+        role: "DOCTOR",
+        search: doctorSearch || undefined,
         page: doctorPage,
         limit: doctorLimit,
         sortBy: "createdAt",
@@ -441,7 +445,11 @@ const DoctorManagement: React.FC = () => {
 
   // Doctor mutations
   const createDoctorMutation = useMutation({
-    mutationFn: (data: CreateDoctorData) => doctorApi.createDoctor(data),
+    mutationFn: (data: CreateDoctorData) => userApi.createUser({ 
+      ...data, 
+      role: "DOCTOR",
+      majorDoctor: data.majorDoctor as "DINH_DUONG" | "TAM_THAN" | undefined
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor-list"] });
       setOpenCreateDoctor(false);
@@ -468,7 +476,11 @@ const DoctorManagement: React.FC = () => {
 
   const updateDoctorMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateDoctorData }) =>
-      doctorApi.updateDoctor(id, data),
+      userApi.updateUser(id, { 
+        ...data, 
+        role: "DOCTOR",
+        majorDoctor: data.majorDoctor as "DINH_DUONG" | "TAM_THAN" | undefined
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor-list"] });
       setOpenEditDoctor({ open: false });
@@ -482,7 +494,7 @@ const DoctorManagement: React.FC = () => {
   });
 
   const deleteDoctorMutation = useMutation({
-    mutationFn: (id: string) => doctorApi.deleteDoctor(id),
+    mutationFn: (id: string) => userApi.deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor-list"] });
       setOpenDeleteDoctor({ open: false });
@@ -506,6 +518,26 @@ const DoctorManagement: React.FC = () => {
       }),
     enabled: !!token,
     retry: false,
+  });
+
+  const exportPrescriptionMutation = useMutation({
+    mutationFn: (filters?: typeof exportPrescriptionFilters) => PrescriptionApi.exportPrescriptions(filters),
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `danh-sach-don-thuoc-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất Excel thành công!");
+      setIsExportPrescriptionDialogOpen(false);
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.message || error?.response?.data?.message || "Xuất Excel thất bại";
+      toast.error(errorMessage);
+    },
   });
   
   // Mock prescription data when no token (bypass mode) - Only 1 for Figma design
@@ -580,6 +612,14 @@ const DoctorManagement: React.FC = () => {
     form: "",
     unit: "",
   });
+  const [isExportPrescriptionDialogOpen, setIsExportPrescriptionDialogOpen] = useState(false);
+  const [exportPrescriptionFilters, setExportPrescriptionFilters] = useState<{
+    status?: "ACTIVE" | "COMPLETED" | "CANCELLED";
+    doctorId?: string;
+    patientId?: string;
+    startDate?: string;
+    endDate?: string;
+  }>({});
   const createMed = useMutation({
     mutationFn: (dto: MedicationDto) => MedicationsApi.create(dto),
     onSuccess: () => {
@@ -2016,24 +2056,26 @@ const DoctorManagement: React.FC = () => {
                 {role === "DOCTOR" && (
                   <>
                     {/* Header Section */}
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl blur-sm"></div>
-                        <div className="relative p-3 bg-gradient-to-br from-primary/15 to-primary/5 rounded-2xl border border-primary/20">
-                          <FileText className="h-6 w-6 text-primary" />
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl blur-sm"></div>
+                          <div className="relative p-3 bg-gradient-to-br from-primary/15 to-primary/5 rounded-2xl border border-primary/20">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                          Danh sách đơn thuốc
-                        </h3>
-                        <p className="text-sm text-muted-foreground flex items-center gap-2">
-                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                          Tổng số đơn thuốc:{" "}
-                          <span className="font-semibold text-primary">
-                            {toArray(prescriptionsQuery.data).length}
-                          </span>
-                        </p>
+                        <div className="space-y-1">
+                          <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                            Danh sách đơn thuốc
+                          </h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                            Tổng số đơn thuốc:{" "}
+                            <span className="font-semibold text-primary">
+                              {toArray(prescriptionsQuery.data).length}
+                            </span>
+                          </p>
+                        </div>
                       </div>
                     </div>
 
@@ -2172,7 +2214,76 @@ const DoctorManagement: React.FC = () => {
                 )}
                 {role === "ADMIN" && (
                   <>
-                    {/* Header Section */}
+                    {/* Header Section - Prescriptions for Admin */}
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl blur-sm"></div>
+                          <div className="relative p-3 bg-gradient-to-br from-primary/15 to-primary/5 rounded-2xl border border-primary/20">
+                            <FileText className="h-6 w-6 text-primary" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                            Danh sách đơn thuốc
+                          </h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                            Tổng số đơn thuốc:{" "}
+                            <span className="font-semibold text-primary">
+                              {toArray(prescriptionsQuery.data).length}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => setIsExportPrescriptionDialogOpen(true)}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Xuất Excel
+                      </Button>
+                    </div>
+
+                    {/* Table Section for Admin Prescriptions */}
+                    <div className="relative rounded-2xl border border-border/20 overflow-hidden bg-gradient-to-br from-background/50 to-background/30 backdrop-blur-sm mb-8">
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-50"></div>
+                      <div className="relative">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-gradient-to-r from-muted/40 via-muted/20 to-muted/40 border-b border-border/30">
+                              <TableHead className="font-bold text-foreground/90 py-4">Mã đơn</TableHead>
+                              <TableHead className="font-bold text-foreground/90 py-4">Bệnh nhân</TableHead>
+                              <TableHead className="font-bold text-foreground/90 py-4">Bác sĩ</TableHead>
+                              <TableHead className="font-bold text-foreground/90 py-4">Trạng thái</TableHead>
+                              <TableHead className="font-bold text-foreground/90 py-4">Ngày tạo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {toArray(prescriptionsQuery.data).map((pr: any) => (
+                              <TableRow key={pr.id}>
+                                <TableCell className="font-medium">{pr.id?.slice(0, 8)}...</TableCell>
+                                <TableCell>{pr.patient?.fullName || pr.patientId}</TableCell>
+                                <TableCell>{pr.doctor?.fullName || pr.doctorId}</TableCell>
+                                <TableCell>
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    pr.status === "ACTIVE" ? "bg-green-100 text-green-800" :
+                                    pr.status === "COMPLETED" ? "bg-blue-100 text-blue-800" :
+                                    "bg-gray-100 text-gray-800"
+                                  }`}>
+                                    {pr.status}
+                                  </span>
+                                </TableCell>
+                                <TableCell>{pr.createdAt ? new Date(pr.createdAt).toLocaleDateString('vi-VN') : '-'}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+
+                    {/* Header Section - Medications for Admin */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
                       <div className="flex items-center gap-4">
                         <div className="relative">
@@ -2643,8 +2754,8 @@ const DoctorManagement: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        Trang {doctorsData?.pagination?.currentPage} / {doctorsData?.pagination?.totalPages} —
-                        Tổng {doctorsData?.pagination?.total} bác sĩ
+                        Trang {doctorsData?.pagination?.currentPage || doctorPage} / {doctorsData?.pagination?.totalPages || 1} —
+                        Tổng {doctorsData?.pagination?.total || 0} bác sĩ
                       </>
                     )}
                   </div>
@@ -2652,14 +2763,14 @@ const DoctorManagement: React.FC = () => {
                     <button
                       className="px-3 py-1 rounded border border-border/30 hover:bg-accent/30 disabled:opacity-50 transition-colors duration-150"
                       onClick={() => setDoctorPage((p) => Math.max(1, p - 1))}
-                      disabled={!doctorsData?.pagination?.hasPrevPage}
+                      disabled={!doctorsData?.pagination?.hasPrevPage && doctorPage <= 1}
                     >
                       Trước
                     </button>
                     <button
                       className="px-3 py-1 rounded border border-border/30 hover:bg-accent/30 disabled:opacity-50 transition-colors duration-150"
                       onClick={() => setDoctorPage((p) => p + 1)}
-                      disabled={!doctorsData?.pagination?.hasNextPage}
+                      disabled={!doctorsData?.pagination?.hasNextPage && (!doctorsData?.pagination?.totalPages || doctorPage >= doctorsData.pagination.totalPages)}
                     >
                       Sau
                     </button>
@@ -2904,6 +3015,72 @@ const DoctorManagement: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Export Prescriptions Dialog */}
+      {role === "ADMIN" && (
+        <Dialog open={isExportPrescriptionDialogOpen} onOpenChange={setIsExportPrescriptionDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Xuất Excel</DialogTitle>
+              <DialogDescription>
+                Chọn các bộ lọc để xuất danh sách đơn thuốc ra file Excel
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Trạng thái</label>
+                <select
+                  className="w-full px-3 py-2 border rounded-lg"
+                  value={exportPrescriptionFilters.status || ""}
+                  onChange={(e) => setExportPrescriptionFilters({ ...exportPrescriptionFilters, status: e.target.value as any || undefined })}
+                >
+                  <option value="">Tất cả</option>
+                  <option value="ACTIVE">Đang điều trị</option>
+                  <option value="COMPLETED">Hoàn thành</option>
+                  <option value="CANCELLED">Đã hủy</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Từ ngày</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border rounded-lg"
+                    value={exportPrescriptionFilters.startDate || ""}
+                    onChange={(e) => setExportPrescriptionFilters({ ...exportPrescriptionFilters, startDate: e.target.value || undefined })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Đến ngày</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border rounded-lg"
+                    value={exportPrescriptionFilters.endDate || ""}
+                    onChange={(e) => setExportPrescriptionFilters({ ...exportPrescriptionFilters, endDate: e.target.value || undefined })}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsExportPrescriptionDialogOpen(false)}>
+                Hủy
+              </Button>
+              <Button
+                onClick={() => {
+                  // Chỉ gửi các field có giá trị (loại bỏ empty string và undefined)
+                  const cleanFilters = Object.fromEntries(
+                    Object.entries(exportPrescriptionFilters).filter(([_, value]) => value !== undefined && value !== "")
+                  );
+                  exportPrescriptionMutation.mutate(cleanFilters);
+                }}
+                disabled={exportPrescriptionMutation.isPending}
+              >
+                {exportPrescriptionMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
