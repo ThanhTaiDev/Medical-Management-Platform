@@ -8,8 +8,10 @@ import {
   Param,
   Post,
   Put,
-  Query
+  Query,
+  Res
 } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import { DoctorService } from '@/modules/doctor/doctor.service';
 import { UserInfo } from '@/common/decorators/users.decorator';
 import { IUserFromToken } from '@/modules/users/types/user.type';
@@ -262,6 +264,46 @@ export class DoctorController {
       user.id,
       sinceDays ? parseInt(sinceDays) : 7
     );
+  }
+
+  @Post('patients/:id/export-treatment-report')
+  @SkipTransform()
+  async exportTreatmentReport(
+    @Param('id') patientId: string,
+    @UserInfo() user: IUserFromToken,
+    @Res() reply: FastifyReply,
+    @Body() body?: {
+      startDate?: string;
+      endDate?: string;
+    }
+  ) {
+    this.ensureDoctor(user);
+
+    try {
+      const buffer = await this.doctorService.exportTreatmentHistory(
+        user.id,
+        patientId,
+        body
+      );
+      const fileName = `bao-cao-dieu-tri-${patientId}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      const excelBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+
+      reply
+        .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .header('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`)
+        .send(excelBuffer);
+    } catch (error: any) {
+      console.error('Error exporting treatment report:', error);
+      const errorMessage = error?.message || 'Lỗi khi xuất báo cáo';
+      reply
+        .code(HttpStatus.INTERNAL_SERVER_ERROR)
+        .header('Content-Type', 'application/json')
+        .send({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: errorMessage,
+          error: 'Internal Server Error'
+        });
+    }
   }
 
   // Doctor sends adherence warning to a patient

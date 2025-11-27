@@ -14,6 +14,7 @@ import {
   UserStatus,
   AlertType
 } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
 
 /**
  * Service xử lý các nghiệp vụ liên quan đến bác sĩ
@@ -1663,5 +1664,242 @@ export class DoctorService {
 
     // Return updated full fields
     return this.getDoctorAllFields(id);
+  }
+
+  async exportTreatmentHistory(
+    doctorId: string,
+    patientId: string,
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+    }
+  ) {
+    // Verify patient belongs to this doctor
+    const patient = await this.databaseService.client.user.findUnique({
+      where: { id: patientId, role: UserRole.PATIENT }
+    });
+    if (!patient) {
+      throw new NotFoundException('Patient not found');
+    }
+
+    const where: any = {
+      patientId,
+      doctorId
+    };
+
+    if (filters?.startDate || filters?.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) {
+        where.createdAt.gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endDate;
+      }
+    }
+
+    // Get all treatment data
+    const [
+      prescriptions,
+      adherenceLogs,
+      alerts,
+      prescriptionItems
+    ] = await Promise.all([
+      this.databaseService.client.prescription.findMany({
+        where,
+        include: {
+          items: {
+            include: { medication: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.databaseService.client.adherenceLog.findMany({
+        where: filters?.startDate || filters?.endDate ? {
+          patientId,
+          createdAt: where.createdAt
+        } : { patientId },
+        include: {
+          prescriptionItem: {
+            include: {
+              medication: true,
+              prescription: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.databaseService.client.alert.findMany({
+        where: {
+          patientId,
+          doctorId,
+          ...(filters?.startDate || filters?.endDate ? {
+            createdAt: where.createdAt
+          } : {})
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.databaseService.client.prescriptionItem.findMany({
+        where: {
+          prescription: where
+        },
+        include: {
+          medication: true,
+          prescription: true
+        }
+      })
+    ]);
+
+    const totalTaken = adherenceLogs.filter(log => log.status === AdherenceStatus.TAKEN).length;
+    const totalMissed = adherenceLogs.filter(log => log.status === AdherenceStatus.MISSED).length;
+    const totalSkipped = adherenceLogs.filter(log => log.status === AdherenceStatus.SKIPPED).length;
+    const adherenceRate = prescriptionItems.length > 0 ? totalTaken / prescriptionItems.length : 0;
+
+    // Create workbook
+    const workbook = new ExcelJS.Workbook();
+
+    // Sheet 1: Patient Info & Summary
+    const summarySheet = workbook.addWorksheet('Tổng Quan');
+    summarySheet.columns = [
+      { header: 'Thông tin', key: 'info', width: 30 },
+      { header: 'Giá trị', key: 'value', width: 50 }
+    ];
+    summarySheet.getRow(1).font = { bold: true };
+    summarySheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    summarySheet.addRow({ info: 'Họ tên', value: patient.fullName || '' });
+    summarySheet.addRow({ info: 'Số điện thoại', value: patient.phoneNumber || '' });
+    summarySheet.addRow({ info: 'Tổng số đơn thuốc', value: prescriptions.length });
+    summarySheet.addRow({ info: 'Đơn đang điều trị', value: prescriptions.filter(p => p.status === PrescriptionStatus.ACTIVE).length });
+    summarySheet.addRow({ info: 'Đơn hoàn thành', value: prescriptions.filter(p => p.status === PrescriptionStatus.COMPLETED).length });
+    summarySheet.addRow({ info: 'Tổng số liều đã lên lịch', value: prescriptionItems.length });
+    summarySheet.addRow({ info: 'Số liều đã uống', value: totalTaken });
+    summarySheet.addRow({ info: 'Số liều bỏ lỡ', value: totalMissed });
+    summarySheet.addRow({ info: 'Số liều bỏ qua', value: totalSkipped });
+    summarySheet.addRow({ info: 'Tỉ lệ tuân thủ (%)', value: `${(adherenceRate * 100).toFixed(2)}%` });
+    summarySheet.addRow({ info: 'Tổng số cảnh báo', value: alerts.length });
+
+    // Sheet 2: Prescriptions
+    const prescriptionsSheet = workbook.addWorksheet('Đơn Thuốc');
+    prescriptionsSheet.columns = [
+      { header: 'Mã đơn', key: 'id', width: 36 },
+      { header: 'Trạng thái', key: 'status', width: 15 },
+      { header: 'Ngày bắt đầu', key: 'startDate', width: 20 },
+      { header: 'Ngày kết thúc', key: 'endDate', width: 20 },
+      { header: 'Ghi chú', key: 'notes', width: 40 },
+      { header: 'Ngày tạo', key: 'createdAt', width: 20 }
+    ];
+    prescriptionsSheet.getRow(1).font = { bold: true };
+    prescriptionsSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    prescriptions.forEach(prescription => {
+      prescriptionsSheet.addRow({
+        id: prescription.id,
+        status: prescription.status === PrescriptionStatus.ACTIVE ? 'Đang điều trị' :
+                prescription.status === PrescriptionStatus.COMPLETED ? 'Hoàn thành' : 'Đã hủy',
+        startDate: prescription.startDate ? new Date(prescription.startDate).toLocaleDateString('vi-VN') : '',
+        endDate: prescription.endDate ? new Date(prescription.endDate).toLocaleDateString('vi-VN') : '',
+        notes: prescription.notes || '',
+        createdAt: prescription.createdAt ? new Date(prescription.createdAt).toLocaleDateString('vi-VN') : ''
+      });
+    });
+
+    // Sheet 3: Prescription Items
+    const itemsSheet = workbook.addWorksheet('Chi Tiết Thuốc');
+    itemsSheet.columns = [
+      { header: 'Mã đơn', key: 'prescriptionId', width: 36 },
+      { header: 'Thuốc', key: 'medication', width: 30 },
+      { header: 'Liều dùng', key: 'dosage', width: 15 },
+      { header: 'Tần suất/ngày', key: 'frequency', width: 15 },
+      { header: 'Số ngày', key: 'duration', width: 15 },
+      { header: 'Đường dùng', key: 'route', width: 15 },
+      { header: 'Hướng dẫn', key: 'instructions', width: 40 }
+    ];
+    itemsSheet.getRow(1).font = { bold: true };
+    itemsSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    prescriptionItems.forEach(item => {
+      itemsSheet.addRow({
+        prescriptionId: item.prescriptionId,
+        medication: item.medication?.name || '',
+        dosage: item.dosage || '',
+        frequency: item.frequencyPerDay || '',
+        duration: item.durationDays || '',
+        route: item.route || '',
+        instructions: item.instructions || ''
+      });
+    });
+
+    // Sheet 4: Adherence Logs
+    const adherenceSheet = workbook.addWorksheet('Lịch Sử Tuân Thủ');
+    adherenceSheet.columns = [
+      { header: 'Ngày giờ', key: 'createdAt', width: 20 },
+      { header: 'Thuốc', key: 'medication', width: 30 },
+      { header: 'Liều dùng', key: 'dosage', width: 15 },
+      { header: 'Trạng thái', key: 'status', width: 15 },
+      { header: 'Số lượng', key: 'amount', width: 15 },
+      { header: 'Ghi chú', key: 'notes', width: 40 }
+    ];
+    adherenceSheet.getRow(1).font = { bold: true };
+    adherenceSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    adherenceLogs.forEach(log => {
+      adherenceSheet.addRow({
+        createdAt: log.createdAt ? new Date(log.createdAt).toLocaleString('vi-VN') : '',
+        medication: log.prescriptionItem?.medication?.name || '',
+        dosage: log.prescriptionItem?.dosage || '',
+        status: log.status === AdherenceStatus.TAKEN ? 'Đã uống' :
+                log.status === AdherenceStatus.MISSED ? 'Bỏ lỡ' : 'Bỏ qua',
+        amount: log.amount || '',
+        notes: log.notes || ''
+      });
+    });
+
+    // Sheet 5: Alerts
+    const alertsSheet = workbook.addWorksheet('Cảnh Báo');
+    alertsSheet.columns = [
+      { header: 'Ngày tạo', key: 'createdAt', width: 20 },
+      { header: 'Loại', key: 'type', width: 20 },
+      { header: 'Nội dung', key: 'message', width: 50 },
+      { header: 'Đã xử lý', key: 'resolved', width: 15 },
+      { header: 'Ngày xử lý', key: 'resolvedAt', width: 20 }
+    ];
+    alertsSheet.getRow(1).font = { bold: true };
+    alertsSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    alerts.forEach(alert => {
+      alertsSheet.addRow({
+        createdAt: alert.createdAt ? new Date(alert.createdAt).toLocaleString('vi-VN') : '',
+        type: alert.type === 'MISSED_DOSE' ? 'Bỏ lỡ liều' :
+              alert.type === 'LOW_ADHERENCE' ? 'Tuân thủ thấp' : 'Khác',
+        message: alert.message || '',
+        resolved: alert.resolved ? 'Có' : 'Chưa',
+        resolvedAt: alert.resolved && alert.updatedAt ? new Date(alert.updatedAt).toLocaleString('vi-VN') : ''
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }
