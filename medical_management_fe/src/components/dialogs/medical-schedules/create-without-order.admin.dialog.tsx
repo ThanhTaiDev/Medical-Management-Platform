@@ -31,8 +31,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { meetingApi } from "@/api/meeting/meeting.api";
 import { patientApi } from "@/api/patient/patient.api";
 import { IPatient } from "@/api/patient/types.patient";
-import { doctorApi } from "@/api/doctor/doctor.api";
-import { User } from "@/api/doctor/types";
+import { userApi } from "@/api/user/user.api";
+import { User as UserType } from "@/api/user/types";
 
 const formSchema = z.object({
   patientId: z.string().min(1, "Vui lòng chọn bệnh nhân"),
@@ -99,7 +99,7 @@ export function CreateMedicalScheduleWithoutOrderAdminDialog({
 
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
-      queryFn: () => doctorApi.getDoctorList()
+      queryFn: () => userApi.getUsers({ role: "DOCTOR", limit: 100 }).then(res => ({ data: res.data || [] }))
   });
 
   const createScheduleMutation = useMutation({
@@ -182,7 +182,7 @@ export function CreateMedicalScheduleWithoutOrderAdminDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {doctors?.data.map((doctor: User) => (
+                      {(doctors?.data || []).map((doctor: UserType) => (
                         <SelectItem key={doctor.id} value={doctor.id}>
                           {doctor.fullName} - {doctor.phoneNumber}
                         </SelectItem>

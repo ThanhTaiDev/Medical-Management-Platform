@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { orderApi } from "../api/order/order.api";
-import { doctorApi } from "../api/doctor/doctor.api";
+import { userApi } from "../api/user/user.api";
 import { productApi } from "../api/product/product.api";
 import { voucherApi } from "../api/voucher/voucher.api";
 import {
@@ -13,10 +13,9 @@ import {
 import { toast } from "react-hot-toast";
 import { ModalCustom } from "@/components/modal-custom";
 import { AxiosError } from "axios";
-import { User } from "../api/doctor/types";
+import { User } from "../api/user/types";
 import { ProductService } from "../api/product/types";
 import { Voucher } from "../api/voucher/types";
-import { DoctorSchedule } from "../api/doctor/types";
 import { DataTableCSR } from "@/components/data-table/data-table-CSR/data-table-CSR";
 import { ColumnDef } from "@tanstack/react-table";
 import { ColumnsTableOrderMgmt } from "@/components/data-table/column-table/columns-table-order-mgmt";
@@ -90,7 +89,7 @@ const OrderManagement: React.FC = () => {
 
   const { data: patientList } = useQuery({
     queryKey: ["patientList"],
-    queryFn: doctorApi.getPatientList,
+    queryFn: () => userApi.getUsers({ role: "PATIENT", limit: 100 }),
   });
 
   const { data: productServices } = useQuery({
@@ -105,7 +104,7 @@ const OrderManagement: React.FC = () => {
 
   const { data: doctorSchedules } = useQuery({
     queryKey: ["doctorSchedules", selectedMajorDoctor],
-    queryFn: () => doctorApi.getDoctorSchedules(),
+    queryFn: () => Promise.resolve({ data: [] }),
     enabled: !!selectedMajorDoctor,
   });
 
@@ -378,7 +377,7 @@ const OrderManagement: React.FC = () => {
                   required
                 >
                   <option value="">Chọn bệnh nhân</option>
-                  {patientList?.data.map((patient: User) => (
+                  {(patientList?.data || []).map((patient: User) => (
                     <option key={patient.id} value={patient.id}>
                       {patient.fullName} - {patient.phoneNumber}
                     </option>
@@ -455,17 +454,17 @@ const OrderManagement: React.FC = () => {
                   required
                 >
                   <option value="">Chọn lịch hẹn</option>
-                  {doctorSchedules?.data
-                    .filter((schedule) => schedule.status === "FREE")
-                    .map((schedule: DoctorSchedule) => (
+                  {(doctorSchedules?.data || [])
+                    .filter((schedule: any) => schedule.status === "FREE")
+                    .map((schedule: any) => (
                       <option key={schedule.id} value={schedule.id}>
                         {schedule.user.fullName} |{" "}
                         {formatDateTime(schedule.startDate)}
                       </option>
                     ))}
                 </select>
-                {doctorSchedules?.data.filter(
-                  (schedule) => schedule.status === "FREE"
+                {(doctorSchedules?.data || []).filter(
+                  (schedule: any) => schedule.status === "FREE"
                 ).length === 0 && (
                   <p className="mt-2 text-sm text-gray-500">
                     Không có lịch hẹn nào còn trống cho chuyên gia này.

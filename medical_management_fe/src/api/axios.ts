@@ -31,7 +31,9 @@ axiosInstance.interceptors.request.use(
 
 // Add a response interceptor
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
     // Handle errors here
     if (error.response?.status === 401) {

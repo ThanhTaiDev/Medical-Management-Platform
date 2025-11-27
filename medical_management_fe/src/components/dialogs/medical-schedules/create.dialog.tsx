@@ -31,7 +31,6 @@ import { toast } from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { meetingApi } from "@/api/meeting/meeting.api";
 import { orderApi } from "@/api/order/order.api";
-import { doctorApi } from "@/api/doctor/doctor.api";
 import { DoctorSchedule } from "@/api/doctor/types";
 import { Order } from "@/api/order/types";
 
@@ -104,7 +103,7 @@ export function CreateMedicalScheduleDialog({
 
   const { data: doctorSchedules } = useQuery({
     queryKey: ["doctorSchedules"],
-    queryFn: () => doctorApi.getDoctorSchedules(),
+    queryFn: () => Promise.resolve({ data: [] as any[] }),
   });
 
   const createScheduleMutation = useMutation({

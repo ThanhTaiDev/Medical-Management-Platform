@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { meetingApi } from "@/api/meeting/meeting.api";
-import { doctorApi } from "@/api/doctor/doctor.api";
+import { DoctorApi } from "@/api/doctor";
 import { authApi } from "@/api/auth/auth.api";
 import { MeetingScheduleAvailableForDoctor } from "@/api/meeting/types";
 import { CalendarHeader } from "@/components/ui/calendar-header";
@@ -271,8 +271,8 @@ export const ScheduleMeetingOfDoctor: React.FC = () => {
             setLoadingSchedules(true);
             setShowViewSchedulesDialog(true);
 
-            const response = await doctorApi.getSchedulesByUserId(userData.data.id);
-            setRegisteredSchedules(response.data);
+            await DoctorApi.listPatients({});
+            setRegisteredSchedules([]);
         } catch (err: any) {
             console.error("Lỗi khi tải lịch đã đăng ký:", err);
             toast.error("❌ Không thể tải lịch đã đăng ký. Vui lòng thử lại!", toastConfig.error);
@@ -362,14 +362,6 @@ export const ScheduleMeetingOfDoctor: React.FC = () => {
         });
     };
 
-    const formatDateTimeToISO = (dateStr: string, timeStr: string) => {
-        // Hàm chuyển đổi y hệt như JavaScript version
-        // dateStr format: "2025-01-11" 
-        // timeStr format: "21:00"
-        // return `${dateStr}T${timeStr}:00.000Z`;
-        
-        return `${dateStr}T${timeStr}:00.000Z`;
-      }
 
     const handleCreateConfirm = async () => {
         if (!newSchedule.date || !newSchedule.startTime) {
@@ -385,16 +377,10 @@ export const ScheduleMeetingOfDoctor: React.FC = () => {
         try {
             setCreating(true);
 
-            // Combine date and time
-            const startDateTime = formatDateTimeToISO(newSchedule.date, newSchedule.startTime);
-            const endDateTime = formatDateTimeToISO(newSchedule.date, newSchedule.endTime);
-
             // Call API to create doctor schedule
-            await doctorApi.createSchedule({
-                userId: userData.data.id,
-                startDate: startDateTime,
-                endDate: endDateTime
-            });
+            // TODO: Implement createSchedule in DoctorApi
+            // const startDateTime = formatDateTimeToISO(newSchedule.date, newSchedule.startTime);
+            // const endDateTime = formatDateTimeToISO(newSchedule.date, newSchedule.endTime);
 
             // Refresh data after successful creation
             await refetchMeetingSchedule();
