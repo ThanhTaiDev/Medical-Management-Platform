@@ -24,8 +24,15 @@ export class IpWhitelistMiddleware implements NestMiddleware {
         .map((ip) => ip.trim())
         .filter((ip) => ip.length > 0);
 
-      // Lấy domain config
-      this.frontendDomain = process.env.FRONTEND_DOMAIN || 'xxx.com';
+      // Lấy domain config từ FRONTEND_URL hoặc FRONTEND_DOMAIN
+      const frontendUrl = process.env.FRONTEND_URL || '';
+      if (frontendUrl) {
+        // Extract domain from URL (remove protocol and path)
+        const urlMatch = frontendUrl.match(/https?:\/\/([^\/]+)/);
+        this.frontendDomain = urlMatch ? urlMatch[1] : process.env.FRONTEND_DOMAIN || 'xxx.com';
+      } else {
+        this.frontendDomain = process.env.FRONTEND_DOMAIN || 'xxx.com';
+      }
       this.apiDomain = process.env.API_DOMAIN || 'api.xxx.com';
 
       this.logger.debug(`Development mode: ${this.isDevelopment}`);
