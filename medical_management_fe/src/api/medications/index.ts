@@ -21,6 +21,7 @@ export interface PaginationQuery {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   isActive?: boolean;
+  q?: string;
 }
 
 export const MedicationsApi = {
@@ -32,6 +33,7 @@ export const MedicationsApi = {
         sortBy: params.sortBy,
         sortOrder: params.sortOrder,
         isActive: params.isActive,
+        q: params.q,
       },
     });
     const payload = res.data?.data ?? res.data;

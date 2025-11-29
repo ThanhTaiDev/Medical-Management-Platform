@@ -12,9 +12,23 @@ export class MedicationsService {
       limit?: number;
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
+      q?: string;
     }
   ) {
-    const where = isActive === undefined ? {} : { isActive };
+    const where: any = isActive === undefined ? {} : { isActive };
+    
+    // Add search functionality
+    if (params?.q && params.q.trim()) {
+      const searchTerm = params.q.trim();
+      where.OR = [
+        { name: { contains: searchTerm, mode: 'insensitive' } },
+        { strength: { contains: searchTerm, mode: 'insensitive' } },
+        { form: { contains: searchTerm, mode: 'insensitive' } },
+        { unit: { contains: searchTerm, mode: 'insensitive' } },
+        { description: { contains: searchTerm, mode: 'insensitive' } }
+      ];
+    }
+    
     const page = params?.page && params.page > 0 ? params.page : 1;
     const limit = params?.limit && params.limit > 0 ? params.limit : 20;
     const orderByField = params?.sortBy || 'createdAt';

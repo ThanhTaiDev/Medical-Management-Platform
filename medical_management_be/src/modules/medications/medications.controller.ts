@@ -28,14 +28,16 @@ export class MedicationsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('sortBy') sortBy?: string,
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc'
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+    @Query('q') q?: string
   ) {
     const active = isActive === undefined ? undefined : isActive === 'true';
     return this.medicationsService.list(active, {
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
       sortBy,
-      sortOrder
+      sortOrder,
+      q
     });
   }
 
