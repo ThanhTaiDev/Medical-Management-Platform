@@ -1,0 +1,41 @@
+# ============================================
+# DATABASE CONFIGURATION
+# ============================================
+# Thay thế bằng DATABASE_URL từ Railway PostgreSQL service
+DATABASE_URL=postgresql://user:password@localhost:5432/medical_management?schema=public
+
+# ============================================
+# APPLICATION CONFIGURATION
+# ============================================
+NODE_ENV=production
+PORT=9900
+FRONTEND_URL=https://your-frontend.vercel.app
+
+# ============================================
+# JWT CONFIGURATION
+# ============================================
+# Access Token
+JWT_ACCESS_TOKEN_SECRET_KEY=fb4XOhCwZB1evM3AvU+4DAAit7cOq4zFApCzlnHPVy4=
+JWT_ACCESS_TOKEN_EXPIRATION_TIME=15m
+
+# Refresh Token
+JWT_REFRESH_TOKEN_SECRET_KEY=sEZoF+Z7CaR5eJXi87hXyXQhQHs4WC2zYuAIM1Z106s=
+JWT_REFRESH_TOKEN_EXPIRATION_TIME=7d
+
+# Verify Token (Email Verification)
+JWT_VERIFY_TOKEN_SECRET_KEY=Btl0Z9/giD02Huz4BHZhrZ781mMACwsegEyyfuOI4Cs=
+JWT_VERIFY_TOKEN_EXPIRATION_TIME=24h
+
+# ============================================
+# SECURITY CONFIGURATION
+# ============================================
+COOKIE_SECRET=YwSnmH5ExKdKmhv2+W+/0aKs8QeIHpFYCD+EXxmhPgA=
+
+# ============================================
+# OPTIONAL CONFIGURATION
+# ============================================
+# FRONTEND_DOMAIN=your-frontend.vercel.app
+# API_DOMAIN=your-backend.railway.app
+# ALLOW_IP_LOCALHOST=false
+# IP_WHITELIST=[]
+
