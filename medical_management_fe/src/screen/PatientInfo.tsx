@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { profileApi, PatientFields, UpdatePatientFieldsData } from '@/api/profile/profile.api';
+import { profileApi, PatientFields, UpdatePatientFieldsData, MedicalHistory } from '@/api/profile/profile.api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import toast from 'react-hot-toast';
 import {
   User,
@@ -21,6 +23,15 @@ import {
   X,
   Loader2,
   Stethoscope,
+  Mail,
+  Ruler,
+  Weight,
+  Plus,
+  Trash2,
+  Heart,
+  AlertTriangle,
+  Activity,
+  Coffee,
 } from 'lucide-react';
 import { getGenderLabel } from '@/utils/gender';
 
@@ -31,6 +42,14 @@ export default function PatientInfo() {
   const [isEditing, setIsEditing] = useState(false);
   const [patientData, setPatientData] = useState<PatientFields | null>(null);
   const [formData, setFormData] = useState<UpdatePatientFieldsData>({});
+  const [medicalHistory, setMedicalHistory] = useState<MedicalHistory | null>(null);
+  const [activeTab, setActiveTab] = useState('personal');
+  
+  // Medical history form states
+  const [newCondition, setNewCondition] = useState('');
+  const [newAllergy, setNewAllergy] = useState('');
+  const [newSurgery, setNewSurgery] = useState('');
+  const [lifestyleText, setLifestyleText] = useState('');
 
   useEffect(() => {
     loadData();
@@ -39,7 +58,10 @@ export default function PatientInfo() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await profileApi.getPatientFields();
+      const [response, history] = await Promise.all([
+        profileApi.getPatientFields(),
+        profileApi.getMedicalHistory().catch(() => null)
+      ]);
       setPatientData(response);
       setFormData({
         fullName: response.fullName,
@@ -47,7 +69,14 @@ export default function PatientInfo() {
         gender: response.profile?.gender,
         birthDate: response.profile?.birthDate || '',
         address: response.profile?.address,
+        email: response.profile?.email || '',
+        height: response.profile?.height || undefined,
+        weight: response.profile?.weight || undefined,
       });
+      setMedicalHistory(history);
+      if (history) {
+        setLifestyleText(history.lifestyle || '');
+      }
     } catch (error: any) {
       console.error('Error loading patient data:', error);
       toast.error('Không thể tải thông tin bệnh nhân');
@@ -80,7 +109,87 @@ export default function PatientInfo() {
         gender: patientData.profile?.gender,
         birthDate: patientData.profile?.birthDate || '',
         address: patientData.profile?.address,
+        email: patientData.profile?.email || '',
+        height: patientData.profile?.height || undefined,
+        weight: patientData.profile?.weight || undefined,
       });
+    }
+  };
+
+  // Medical History Handlers
+  const handleAddCondition = async () => {
+    if (!newCondition.trim()) return;
+    try {
+      const updated = await profileApi.addCondition(newCondition.trim());
+      setMedicalHistory(updated);
+      setNewCondition('');
+      toast.success('Thêm tiền sử bệnh thành công');
+    } catch (error: any) {
+      toast.error('Không thể thêm tiền sử bệnh');
+    }
+  };
+
+  const handleDeleteCondition = async (index: number) => {
+    try {
+      const updated = await profileApi.deleteCondition(index);
+      setMedicalHistory(updated);
+      toast.success('Xóa tiền sử bệnh thành công');
+    } catch (error: any) {
+      toast.error('Không thể xóa tiền sử bệnh');
+    }
+  };
+
+  const handleAddAllergy = async () => {
+    if (!newAllergy.trim()) return;
+    try {
+      const updated = await profileApi.addAllergy(newAllergy.trim());
+      setMedicalHistory(updated);
+      setNewAllergy('');
+      toast.success('Thêm dị ứng thành công');
+    } catch (error: any) {
+      toast.error('Không thể thêm dị ứng');
+    }
+  };
+
+  const handleDeleteAllergy = async (index: number) => {
+    try {
+      const updated = await profileApi.deleteAllergy(index);
+      setMedicalHistory(updated);
+      toast.success('Xóa dị ứng thành công');
+    } catch (error: any) {
+      toast.error('Không thể xóa dị ứng');
+    }
+  };
+
+  const handleAddSurgery = async () => {
+    if (!newSurgery.trim()) return;
+    try {
+      const updated = await profileApi.addSurgery(newSurgery.trim());
+      setMedicalHistory(updated);
+      setNewSurgery('');
+      toast.success('Thêm phẫu thuật thành công');
+    } catch (error: any) {
+      toast.error('Không thể thêm phẫu thuật');
+    }
+  };
+
+  const handleDeleteSurgery = async (index: number) => {
+    try {
+      const updated = await profileApi.deleteSurgery(index);
+      setMedicalHistory(updated);
+      toast.success('Xóa phẫu thuật thành công');
+    } catch (error: any) {
+      toast.error('Không thể xóa phẫu thuật');
+    }
+  };
+
+  const handleUpdateLifestyle = async () => {
+    try {
+      const updated = await profileApi.updateLifestyle(lifestyleText);
+      setMedicalHistory(updated);
+      toast.success('Cập nhật lối sống thành công');
+    } catch (error: any) {
+      toast.error('Không thể cập nhật lối sống');
     }
   };
 
@@ -245,6 +354,48 @@ export default function PatientInfo() {
                         placeholder="Nhập địa chỉ"
                       />
                     </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">
+                        <Mail className="h-4 w-4 inline mr-2" />
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email || ''}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="Nhập email"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="height">
+                        <Ruler className="h-4 w-4 inline mr-2" />
+                        Chiều cao (cm)
+                      </Label>
+                      <Input
+                        id="height"
+                        type="number"
+                        value={formData.height || ''}
+                        onChange={(e) => setFormData({ ...formData, height: e.target.value ? parseFloat(e.target.value) : undefined })}
+                        placeholder="Nhập chiều cao"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="weight">
+                        <Weight className="h-4 w-4 inline mr-2" />
+                        Cân nặng (kg)
+                      </Label>
+                      <Input
+                        id="weight"
+                        type="number"
+                        value={formData.weight || ''}
+                        onChange={(e) => setFormData({ ...formData, weight: e.target.value ? parseFloat(e.target.value) : undefined })}
+                        placeholder="Nhập cân nặng"
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -283,6 +434,32 @@ export default function PatientInfo() {
                         <p className="font-semibold truncate">{patientData.profile?.address || 'Chưa cập nhật'}</p>
                       </div>
                     </div>
+
+                    {patientData.profile?.email && (
+                      <div className="flex items-center gap-3 p-4 bg-secondary/20 rounded-lg">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                          <Mail className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="font-semibold truncate">{patientData.profile.email}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {(patientData.profile?.height || patientData.profile?.weight) && (
+                      <div className="flex items-center gap-3 p-4 bg-secondary/20 rounded-lg">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                          <Activity className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Chiều cao / Cân nặng</p>
+                          <p className="font-semibold">
+                            {patientData.profile.height ? `${patientData.profile.height} cm` : '-'} / {patientData.profile.weight ? `${patientData.profile.weight} kg` : '-'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -312,6 +489,158 @@ export default function PatientInfo() {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Medical History Tabs */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Hồ sơ bệnh án</CardTitle>
+              <CardDescription>Quản lý tiền sử bệnh, dị ứng, phẫu thuật và lối sống</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="conditions">
+                    <Heart className="h-4 w-4 mr-2" />
+                    Tiền sử bệnh
+                  </TabsTrigger>
+                  <TabsTrigger value="allergies">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Dị ứng
+                  </TabsTrigger>
+                  <TabsTrigger value="surgeries">
+                    <Activity className="h-4 w-4 mr-2" />
+                    Phẫu thuật
+                  </TabsTrigger>
+                  <TabsTrigger value="lifestyle">
+                    <Coffee className="h-4 w-4 mr-2" />
+                    Lối sống
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Conditions Tab */}
+                <TabsContent value="conditions" className="space-y-4 mt-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nhập tiền sử bệnh..."
+                      value={newCondition}
+                      onChange={(e) => setNewCondition(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddCondition()}
+                    />
+                    <Button onClick={handleAddCondition}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Thêm
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {medicalHistory?.conditions && medicalHistory.conditions.length > 0 ? (
+                      medicalHistory.conditions.map((condition, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <span>{condition}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteCondition(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">Chưa có tiền sử bệnh nào</p>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Allergies Tab */}
+                <TabsContent value="allergies" className="space-y-4 mt-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nhập dị ứng..."
+                      value={newAllergy}
+                      onChange={(e) => setNewAllergy(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddAllergy()}
+                    />
+                    <Button onClick={handleAddAllergy}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Thêm
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {medicalHistory?.allergies && medicalHistory.allergies.length > 0 ? (
+                      medicalHistory.allergies.map((allergy, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <span>{allergy}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteAllergy(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">Chưa có dị ứng nào</p>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Surgeries Tab */}
+                <TabsContent value="surgeries" className="space-y-4 mt-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nhập phẫu thuật..."
+                      value={newSurgery}
+                      onChange={(e) => setNewSurgery(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddSurgery()}
+                    />
+                    <Button onClick={handleAddSurgery}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Thêm
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {medicalHistory?.surgeries && medicalHistory.surgeries.length > 0 ? (
+                      medicalHistory.surgeries.map((surgery, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <span>{surgery}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteSurgery(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">Chưa có phẫu thuật nào</p>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Lifestyle Tab */}
+                <TabsContent value="lifestyle" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Thông tin lối sống</Label>
+                    <Textarea
+                      placeholder="Nhập thông tin về lối sống, thói quen ăn uống, tập thể dục, giấc ngủ, hút thuốc, rượu bia, căng thẳng..."
+                      value={lifestyleText}
+                      onChange={(e) => setLifestyleText(e.target.value)}
+                      rows={6}
+                    />
+                    <Button onClick={handleUpdateLifestyle}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Lưu lối sống
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

@@ -38,6 +38,9 @@ model PatientProfile {
   gender    Gender?
   birthDate DateTime?
   address   String?
+  email     String?
+  height    Float?    // cm
+  weight    Float?    // kg
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -647,7 +647,10 @@ export class PatientService {
           select: {
             gender: true,
             birthDate: true,
-            address: true
+            address: true,
+            email: true,
+            height: true,
+            weight: true
           }
         },
         medicalHistory: {
@@ -669,7 +672,14 @@ export class PatientService {
     console.log('Query result:', {
       id: result?.id,
       createdBy: result?.createdBy,
-      createdByUser: result?.createdByUser
+      createdByUser: result?.createdByUser,
+      medicalHistory: result?.medicalHistory
+    });
+    console.log('Medical History details:', {
+      conditions: result?.medicalHistory?.conditions,
+      allergies: result?.medicalHistory?.allergies,
+      surgeries: result?.medicalHistory?.surgeries,
+      lifestyle: result?.medicalHistory?.lifestyle
     });
     console.log('=== END GET PATIENT DETAIL DEBUG ===');
 
@@ -927,6 +937,9 @@ export class PatientService {
       gender?: string;
       birthDate?: string;
       address?: string;
+      email?: string;
+      height?: number;
+      weight?: number;
     }
   ) {
     // Kiểm tra patient có tồn tại
@@ -986,6 +999,9 @@ export class PatientService {
     }
     if (data.birthDate !== undefined) profileUpdateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
     if (data.address !== undefined) profileUpdateData.address = data.address;
+    if (data.email !== undefined) profileUpdateData.email = data.email;
+    if (data.height !== undefined) profileUpdateData.height = data.height;
+    if (data.weight !== undefined) profileUpdateData.weight = data.weight;
 
     // Update or create PatientProfile
     if (Object.keys(profileUpdateData).length > 0) {
@@ -1008,5 +1024,140 @@ export class PatientService {
 
     // Return updated full fields
     return this.getPatientAllFields(id);
+  }
+
+  // ========== Medical History Management ==========
+
+  async getMedicalHistory(id: string) {
+    const history = await this.databaseService.client.patientMedicalHistory.findUnique({
+      where: { patientId: id }
+    });
+
+    if (!history) {
+      // Create empty history if doesn't exist
+      return await this.databaseService.client.patientMedicalHistory.create({
+        data: {
+          patientId: id,
+          conditions: [],
+          allergies: [],
+          surgeries: [],
+          currentMedications: []
+        }
+      });
+    }
+
+    return history;
+  }
+
+  async addCondition(id: string, condition: string) {
+    const history = await this.getMedicalHistory(id);
+    const updatedConditions = [...history.conditions, condition];
+    
+    return await this.databaseService.client.patientMedicalHistory.update({
+      where: { patientId: id },
+      data: { conditions: updatedConditions }
+    });
+  }
+
+  async updateConditions(id: string, conditions: string[]) {
+    return await this.databaseService.client.patientMedicalHistory.upsert({
+      where: { patientId: id },
+      create: {
+        patientId: id,
+        conditions
+      },
+      update: {
+        conditions
+      }
+    });
+  }
+
+  async deleteCondition(id: string, index: number) {
+    const history = await this.getMedicalHistory(id);
+    const updatedConditions = history.conditions.filter((_, i) => i !== index);
+    
+    return await this.databaseService.client.patientMedicalHistory.update({
+      where: { patientId: id },
+      data: { conditions: updatedConditions }
+    });
+  }
+
+  async addAllergy(id: string, allergen: string) {
+    const history = await this.getMedicalHistory(id);
+    const updatedAllergies = [...history.allergies, allergen];
+    
+    return await this.databaseService.client.patientMedicalHistory.update({
+      where: { patientId: id },
+      data: { allergies: updatedAllergies }
+    });
+  }
+
+  async updateAllergies(id: string, allergies: string[]) {
+    return await this.databaseService.client.patientMedicalHistory.upsert({
+      where: { patientId: id },
+      create: {
+        patientId: id,
+        allergies
+      },
+      update: {
+        allergies
+      }
+    });
+  }
+
+  async deleteAllergy(id: string, index: number) {
+    const history = await this.getMedicalHistory(id);
+    const updatedAllergies = history.allergies.filter((_, i) => i !== index);
+    
+    return await this.databaseService.client.patientMedicalHistory.update({
+      where: { patientId: id },
+      data: { allergies: updatedAllergies }
+    });
+  }
+
+  async addSurgery(id: string, surgery: string) {
+    const history = await this.getMedicalHistory(id);
+    const updatedSurgeries = [...history.surgeries, surgery];
+    
+    return await this.databaseService.client.patientMedicalHistory.update({
+      where: { patientId: id },
+      data: { surgeries: updatedSurgeries }
+    });
+  }
+
+  async updateSurgeries(id: string, surgeries: string[]) {
+    return await this.databaseService.client.patientMedicalHistory.upsert({
+      where: { patientId: id },
+      create: {
+        patientId: id,
+        surgeries
+      },
+      update: {
+        surgeries
+      }
+    });
+  }
+
+  async deleteSurgery(id: string, index: number) {
+    const history = await this.getMedicalHistory(id);
+    const updatedSurgeries = history.surgeries.filter((_, i) => i !== index);
+    
+    return await this.databaseService.client.patientMedicalHistory.update({
+      where: { patientId: id },
+      data: { surgeries: updatedSurgeries }
+    });
+  }
+
+  async updateLifestyle(id: string, lifestyle: string) {
+    return await this.databaseService.client.patientMedicalHistory.upsert({
+      where: { patientId: id },
+      create: {
+        patientId: id,
+        lifestyle
+      },
+      update: {
+        lifestyle
+      }
+    });
   }
 }
