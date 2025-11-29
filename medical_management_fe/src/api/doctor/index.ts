@@ -97,6 +97,11 @@ export const DoctorApi = {
     return res.data?.data ?? res.data;
   },
 
+  getMostRecentPrescription: async (patientId: string) => {
+    const res = await axiosInstance.get(`/doctor/prescriptions/patient/${patientId}/most-recent`);
+    return res.data?.data ?? res.data;
+  },
+
   createPrescription: async (dto: {
     patientId: string;
     items: Array<{

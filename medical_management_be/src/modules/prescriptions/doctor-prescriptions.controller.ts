@@ -105,6 +105,24 @@ export class DoctorPrescriptionsController {
     });
   }
 
+  @Get('patient/:patientId/most-recent')
+  async getMostRecentPrescription(
+    @Param('patientId') patientId: string,
+    @UserInfo() user: IUserFromToken
+  ) {
+    if (user.roles !== UserRole.DOCTOR) {
+      throw new HttpException(
+        'Chỉ bác sĩ mới có thể xem đơn thuốc gần nhất',
+        HttpStatus.FORBIDDEN
+      );
+    }
+
+    return this.prescriptionsService.getMostRecentPrescription(
+      user.id,
+      patientId
+    );
+  }
+
   @Get(':id')
   async getPrescriptionDetail(
     @Param('id') prescriptionId: string,

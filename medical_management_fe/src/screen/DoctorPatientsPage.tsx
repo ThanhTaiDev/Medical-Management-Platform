@@ -6,6 +6,7 @@ import { MedicationsApi } from "@/api/medications";
 import { Button } from "@/components/ui/button";
 import { CreatePatientDialog } from "@/components/dialogs/patients/create-patient.dialog";
 import { ConfirmDeletePatientDialog } from "@/components/dialogs/patients/confirm-delete-patient.dialog";
+import { PrescriptionPreviewModal } from "@/components/prescription-preview-modal";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox, ComboboxOption } from "@/components/ui/combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -236,6 +238,9 @@ export default function DoctorPatientsPage() {
   const [editingPrescriptionId, setEditingPrescriptionId] = useState<
     string | null
   >(null);
+  const [medicationSearchQuery, setMedicationSearchQuery] = useState("");
+  const [debouncedMedicationSearch, setDebouncedMedicationSearch] = useState("");
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Form for basic info editing
   const basicInfoForm = useForm<UpdateBasicInfoData>({
@@ -365,14 +370,27 @@ export default function DoctorPatientsPage() {
     },
   });
 
-  // Medications query
+  // Debounce medication search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedMedicationSearch(medicationSearchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [medicationSearchQuery]);
+
+  // Medications query with search
   const {
     data: medications,
     isLoading: loadingMedications,
     error: medicationsError,
   } = useQuery({
-    queryKey: ["medications"],
-    queryFn: () => MedicationsApi.list({ page: 1, limit: 100, isActive: true }),
+    queryKey: ["medications", debouncedMedicationSearch],
+    queryFn: () => MedicationsApi.list({ 
+      page: 1, 
+      limit: 100, 
+      isActive: true,
+      q: debouncedMedicationSearch || undefined,
+    }),
     enabled: activeDialogTab === "prescriptions",
   });
 
@@ -416,6 +434,14 @@ export default function DoctorPatientsPage() {
       queryKey: ["prescription-detail", selectedPrescriptionId],
       queryFn: () => DoctorApi.getPrescription(selectedPrescriptionId!),
       enabled: !!selectedPrescriptionId && isPrescriptionDetailOpen,
+    });
+
+  // Most recent prescription query
+  const { data: mostRecentPrescription, isLoading: loadingMostRecent } =
+    useQuery({
+      queryKey: ["most-recent-prescription", historyPatient?.id],
+      queryFn: () => DoctorApi.getMostRecentPrescription(historyPatient!.id),
+      enabled: !!historyPatient?.id && showCreatePrescriptionForm,
     });
 
   // Create prescription mutation
@@ -656,6 +682,77 @@ export default function DoctorPatientsPage() {
     }
   };
 
+  const handleLoadMostRecent = () => {
+    if (!mostRecentPrescription) {
+      toast.error("Không tìm thấy đơn thuốc gần nhất");
+      return;
+    }
+
+    // Map backend enum/time labels to Vietnamese UI labels
+    const toUiTime = (val: string) => {
+      const map: Record<string, string> = {
+        MORNING: "Sáng",
+        NOON: "Trưa",
+        AFTERNOON: "Chiều",
+        EVENING: "Tối",
+      };
+      return map[val] || val;
+    };
+    const normalizeTimes = (arr: any): string[] => {
+      if (!Array.isArray(arr)) return [];
+      return arr.map((t) => String(t)).map(toUiTime);
+    };
+
+    // Prefill form with most recent prescription
+    const items = (mostRecentPrescription.items || []).map((i: any) => ({
+      medicationId: i.medicationId || i.medication?.id || "",
+      dosage: i.dosage || "",
+      timesOfDay: normalizeTimes(i.timesOfDay),
+      durationDays: i.durationDays || 7,
+      route: i.route || "",
+      instructions: i.instructions || "",
+    }));
+
+    setPrescriptionItems(
+      items.length
+        ? items
+        : [
+            {
+              medicationId: "",
+              dosage: "",
+              timesOfDay: [],
+              durationDays: 7,
+              route: "",
+              instructions: "",
+            },
+          ],
+    );
+    setPrescriptionNotes(mostRecentPrescription.notes || "");
+    toast.success("Đã tải đơn thuốc gần nhất");
+  };
+
+  const handleShowPreview = () => {
+    // Validate before showing preview
+    const prescriptionData = {
+      items: prescriptionItems.map(item => ({
+        ...item,
+        frequencyPerDay: item.timesOfDay.length
+      })),
+      notes: prescriptionNotes,
+    };
+
+    try {
+      prescriptionSchema.parse(prescriptionData);
+      setShowPreviewModal(true);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(
+          error.errors[0]?.message || "Vui lòng kiểm tra lại thông tin",
+        );
+      }
+    }
+  };
+
   const startEditPrescription = (detail: any) => {
     if (!detail) return;
     // Map backend enum/time labels to Vietnamese UI labels
@@ -885,14 +982,26 @@ export default function DoctorPatientsPage() {
       // Always fetch latest detail to ensure UI shows persisted values
       const latest = await patientApi.getPatientDetailForDoctor(p.id);
       const patient = latest?.data ?? latest ?? p;
+      
+      // Debug: Log to see what we're getting
+      console.log('=== OPEN HISTORY DEBUG ===');
+      console.log('Latest response:', latest);
+      console.log('Patient:', patient);
+      console.log('Medical History:', patient.medicalHistory);
+      console.log('=== END DEBUG ===');
+      
       setHistoryPatient(patient);
       const mh = patient.medicalHistory || {};
+      
+      // Ensure arrays are properly handled
+      const conditions = Array.isArray(mh.conditions) ? mh.conditions : [];
+      const allergies = Array.isArray(mh.allergies) ? mh.allergies : [];
+      const surgeries = Array.isArray(mh.surgeries) ? mh.surgeries : [];
+      
       setHistoryForm({
-        conditions: mh.conditions || [],
-        allergies: Array.isArray(mh.allergies) 
-          ? mh.allergies.join(", ") 
-          : mh.allergies || "",
-        surgeries: mh.surgeries || [],
+        conditions: conditions,
+        allergies: allergies.length > 0 ? allergies.join(", ") : "",
+        surgeries: surgeries,
         familyHistory: mh.familyHistory || "",
         lifestyle: mh.lifestyle || "",
         currentMedications: Array.isArray(mh.currentMedications) 
@@ -1764,7 +1873,14 @@ export default function DoctorPatientsPage() {
                             <label className="text-xs font-medium text-muted-foreground mb-2 block">
                               Tên thuốc *
                             </label>
-                            <Select
+                            <Combobox
+                              options={
+                                medications?.items?.map((med: any) => ({
+                                  value: med.id,
+                                  label: `${med?.name || 'N/A'} - ${med?.strength || 'N/A'} ${med?.unit || 'N/A'}`,
+                                  ...med,
+                                })) || []
+                              }
                               value={item.medicationId}
                               onValueChange={(value) =>
                                 updatePrescriptionItem(
@@ -1773,48 +1889,24 @@ export default function DoctorPatientsPage() {
                                   value,
                                 )
                               }
-                              disabled={loadingMedications}
-                            >
-                              <SelectTrigger className="transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                <SelectValue
-                                  placeholder={
-                                    loadingMedications
-                                      ? "Đang tải danh sách thuốc..."
-                                      : medicationsError
-                                        ? "Lỗi tải danh sách thuốc"
-                                        : "Chọn thuốc"
-                                  }
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {loadingMedications ? (
-                                  <SelectItem value="loading" disabled>
-                                    <div className="flex items-center gap-2">
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                      Đang tải...
-                                    </div>
-                                  </SelectItem>
-                                ) : medicationsError ? (
-                                  <SelectItem value="error" disabled>
-                                    <span className="text-red-500">
-                                      Lỗi tải danh sách thuốc
-                                    </span>
-                                  </SelectItem>
-                                ) : medications?.items?.length > 0 ? (
-                                  medications.items.map((med: any) => (
-                                    <SelectItem key={med.id} value={med.id}>
-                                      {med?.name || 'N/A'} - {med?.strength || 'N/A'} {med?.unit || 'N/A'}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="empty" disabled>
-                                    <span className="text-muted-foreground">
-                                      Chưa có thuốc nào
-                                    </span>
-                                  </SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
+                              placeholder={
+                                loadingMedications
+                                  ? "Đang tải danh sách thuốc..."
+                                  : medicationsError
+                                    ? "Lỗi tải danh sách thuốc"
+                                    : "Tìm kiếm hoặc chọn thuốc..."
+                              }
+                              searchPlaceholder="Tìm kiếm thuốc..."
+                              emptyText={
+                                debouncedMedicationSearch
+                                  ? "Không tìm thấy thuốc"
+                                  : "Chưa có thuốc nào"
+                              }
+                              disabled={loadingMedications || !!medicationsError}
+                              isLoading={loadingMedications}
+                              onSearch={(query) => setMedicationSearchQuery(query)}
+                              className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                            />
                             {medicationsError && (
                               <p className="text-xs text-red-500 mt-1">
                                 Không thể tải danh sách thuốc. Vui lòng thử lại
@@ -1823,7 +1915,8 @@ export default function DoctorPatientsPage() {
                             )}
                             {!loadingMedications &&
                               !medicationsError &&
-                              medications?.items?.length === 0 && (
+                              medications?.items?.length === 0 &&
+                              !debouncedMedicationSearch && (
                                 <p className="text-xs text-yellow-600 mt-1">
                                   ⚠️ Chưa có thuốc nào trong hệ thống. Admin cần
                                   thêm thuốc trước.
@@ -1985,32 +2078,57 @@ export default function DoctorPatientsPage() {
                       />
                     </div>
 
-                    {/* Submit Button */}
-                    <Button
-                      onClick={handleCreatePrescription}
-                      disabled={
-                        createPrescriptionMutation.isPending ||
-                        updatePrescriptionMutation.isPending
-                      }
-                      className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-200"
-                    >
-                      {createPrescriptionMutation.isPending ||
-                      updatePrescriptionMutation.isPending ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          {editingPrescriptionId
-                            ? "Đang cập nhật đơn thuốc..."
-                            : "Đang tạo đơn thuốc..."}
-                        </>
-                      ) : (
-                        <>
-                          <Pill className="h-4 w-4 mr-2" />
-                          {editingPrescriptionId
-                            ? "Cập nhật đơn thuốc"
-                            : "Tạo đơn thuốc"}
-                        </>
-                      )}
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleLoadMostRecent}
+                          disabled={loadingMostRecent || !mostRecentPrescription}
+                          className="flex-1"
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {loadingMostRecent
+                            ? "Đang tải..."
+                            : "Xem đơn gần nhất"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleShowPreview}
+                          className="flex-1"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem trước
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={handleCreatePrescription}
+                        disabled={
+                          createPrescriptionMutation.isPending ||
+                          updatePrescriptionMutation.isPending
+                        }
+                        className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-200"
+                      >
+                        {createPrescriptionMutation.isPending ||
+                        updatePrescriptionMutation.isPending ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            {editingPrescriptionId
+                              ? "Đang cập nhật đơn thuốc..."
+                              : "Đang tạo đơn thuốc..."}
+                          </>
+                        ) : (
+                          <>
+                            <Pill className="h-4 w-4 mr-2" />
+                            {editingPrescriptionId
+                              ? "Cập nhật đơn thuốc"
+                              : "Tạo đơn thuốc"}
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -2179,13 +2297,16 @@ export default function DoctorPatientsPage() {
                         Phẫu thuật
                       </label>
                       <Input
-                        placeholder="Nhập thông tin phẫu thuật..."
+                        placeholder="Ví dụ: Phẫu thuật tim, Phẫu thuật mắt..."
                         className="transition-all duration-200 focus:ring-2 focus:ring-emerald-500/20"
-                        value={historyForm.surgeries[0] || ""}
+                        value={Array.isArray(historyForm.surgeries) ? historyForm.surgeries.join(", ") : (historyForm.surgeries || "")}
                         onChange={(e) =>
                           setHistoryForm((p) => ({
                             ...p,
-                            surgeries: [e.target.value],
+                            surgeries: e.target.value
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
                           }))
                         }
                       />
@@ -2850,6 +2971,23 @@ export default function DoctorPatientsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Prescription Preview Modal */}
+      <PrescriptionPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        onConfirm={() => {
+          setShowPreviewModal(false);
+          handleCreatePrescription();
+        }}
+        patient={historyPatient}
+        items={prescriptionItems.map((item) => ({
+          ...item,
+          frequencyPerDay: item.timesOfDay.length,
+        }))}
+        notes={prescriptionNotes}
+        medications={medications?.items || []}
+      />
     </main>
   );
 }
