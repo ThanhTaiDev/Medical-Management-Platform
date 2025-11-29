@@ -225,6 +225,23 @@ export const patientApi = {
         return res.data?.data ?? res.data;
     },
 
+    async updateAdherenceLog(
+        prescriptionId: string,
+        logId: string,
+        data: {
+            status?: 'TAKEN' | 'MISSED' | 'SKIPPED';
+            takenAt?: string;
+            amount?: string;
+            notes?: string;
+        }
+    ) {
+        const res = await axiosInstance.patch(
+            `/patient/prescriptions/${prescriptionId}/adherence-logs/${logId}`,
+            data
+        );
+        return res.data?.data ?? res.data;
+    },
+
     // Doctor endpoints for patient history management
     async updatePatientHistory(patientId: string, historyData: {
         conditions?: string[];
