@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query
 } from '@nestjs/common';
@@ -205,5 +206,38 @@ export class PatientPrescriptionsController {
       limit: limit ? parseInt(limit) : undefined,
       patientId: user.id
     });
+  }
+
+  @Patch(':prescriptionId/adherence-logs/:logId')
+  async updateAdherenceLog(
+    @Param('prescriptionId') prescriptionId: string,
+    @Param('logId') logId: string,
+    @Body()
+    body: {
+      status?: 'TAKEN' | 'MISSED' | 'SKIPPED';
+      takenAt?: string;
+      amount?: string;
+      notes?: string;
+    },
+    @UserInfo() user: IUserFromToken
+  ) {
+    if (user.roles !== UserRole.PATIENT) {
+      throw new HttpException(
+        'Chỉ bệnh nhân mới có thể chỉnh sửa xác nhận',
+        HttpStatus.FORBIDDEN
+      );
+    }
+
+    return this.prescriptionsService.updateAdherenceLog(
+      logId,
+      user.id,
+      prescriptionId,
+      {
+        status: body.status,
+        takenAt: body.takenAt ? new Date(body.takenAt) : undefined,
+        amount: body.amount,
+        notes: body.notes
+      }
+    );
   }
 }

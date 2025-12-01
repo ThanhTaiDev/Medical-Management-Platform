@@ -52,6 +52,9 @@ export interface PatientFields {
     gender: string;
     birthDate: string | null;
     address: string;
+    email: string | null;
+    height: number | null;
+    weight: number | null;
     createdAt: string;
     updatedAt: string;
   } | null;
@@ -115,6 +118,24 @@ export interface UpdatePatientFieldsData {
   gender?: string;
   birthDate?: string;
   address?: string;
+  email?: string;
+  height?: number;
+  weight?: number;
+}
+
+export interface MedicalHistory {
+  id: string;
+  patientId: string;
+  conditions: string[];
+  allergies: string[];
+  surgeries: string[];
+  familyHistory: string | null;
+  lifestyle: string | null;
+  currentMedications: string[];
+  notes: string | null;
+  extras: any;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const profileApi = {
@@ -137,6 +158,62 @@ export const profileApi = {
 
   updatePatientFields: async (data: UpdatePatientFieldsData): Promise<PatientFields> => {
     const res = await axiosInstance.put('/patient/fields', data);
+    return res.data;
+  },
+
+  // Medical History APIs
+  getMedicalHistory: async (): Promise<MedicalHistory> => {
+    const res = await axiosInstance.get('/patient/medical-history');
+    return res.data;
+  },
+
+  addCondition: async (condition: string): Promise<MedicalHistory> => {
+    const res = await axiosInstance.post('/patient/medical-history/conditions', { condition });
+    return res.data;
+  },
+
+  updateConditions: async (conditions: string[]): Promise<MedicalHistory> => {
+    const res = await axiosInstance.put('/patient/medical-history/conditions', { conditions });
+    return res.data;
+  },
+
+  deleteCondition: async (index: number): Promise<MedicalHistory> => {
+    const res = await axiosInstance.delete(`/patient/medical-history/conditions/${index}`);
+    return res.data;
+  },
+
+  addAllergy: async (allergen: string): Promise<MedicalHistory> => {
+    const res = await axiosInstance.post('/patient/medical-history/allergies', { allergen });
+    return res.data;
+  },
+
+  updateAllergies: async (allergies: string[]): Promise<MedicalHistory> => {
+    const res = await axiosInstance.put('/patient/medical-history/allergies', { allergies });
+    return res.data;
+  },
+
+  deleteAllergy: async (index: number): Promise<MedicalHistory> => {
+    const res = await axiosInstance.delete(`/patient/medical-history/allergies/${index}`);
+    return res.data;
+  },
+
+  addSurgery: async (surgery: string): Promise<MedicalHistory> => {
+    const res = await axiosInstance.post('/patient/medical-history/surgeries', { surgery });
+    return res.data;
+  },
+
+  updateSurgeries: async (surgeries: string[]): Promise<MedicalHistory> => {
+    const res = await axiosInstance.put('/patient/medical-history/surgeries', { surgeries });
+    return res.data;
+  },
+
+  deleteSurgery: async (index: number): Promise<MedicalHistory> => {
+    const res = await axiosInstance.delete(`/patient/medical-history/surgeries/${index}`);
+    return res.data;
+  },
+
+  updateLifestyle: async (lifestyle: string): Promise<MedicalHistory> => {
+    const res = await axiosInstance.put('/patient/medical-history/lifestyle', { lifestyle });
     return res.data;
   },
 };

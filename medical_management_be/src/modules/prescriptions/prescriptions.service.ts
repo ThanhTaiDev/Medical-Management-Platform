@@ -404,6 +404,49 @@ export class PrescriptionsService {
     return { items, total, page, limit };
   }
 
+  async getMostRecentPrescription(doctorId: string, patientId: string) {
+    const prescription = await this.databaseService.client.prescription.findFirst({
+      where: {
+        doctorId,
+        patientId,
+        status: {
+          in: ['ACTIVE', 'COMPLETED']
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            profile: {
+              select: {
+                gender: true,
+                birthDate: true
+              }
+            }
+          }
+        },
+        items: {
+          include: {
+            medication: {
+              select: {
+                id: true,
+                name: true,
+                strength: true,
+                form: true,
+                unit: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return prescription;
+  }
+
   async getPrescriptionsByDoctor(
     doctorId: string,
     params?: {
@@ -763,6 +806,132 @@ export class PrescriptionsService {
     ]);
 
     return { items, total, page, limit };
+  }
+
+  async updateAdherenceLog(
+    logId: string,
+    patientId: string,
+    prescriptionId: string,
+    data: {
+      status?: 'TAKEN' | 'MISSED' | 'SKIPPED';
+      takenAt?: Date;
+      amount?: string;
+      notes?: string;
+    }
+  ) {
+    // Verify log exists and belongs to patient
+    const existingLog =
+      await this.databaseService.client.adherenceLog.findUnique({
+        where: { id: logId },
+        select: {
+          id: true,
+          patientId: true,
+          prescriptionId: true,
+          takenAt: true,
+          createdAt: true
+        }
+      });
+
+    if (!existingLog) {
+      throw new NotFoundException('Xác nhận không tồn tại');
+    }
+
+    if (existingLog.patientId !== patientId) {
+      throw new BadRequestException(
+        'Bạn không có quyền chỉnh sửa xác nhận này'
+      );
+    }
+
+    if (existingLog.prescriptionId !== prescriptionId) {
+      throw new BadRequestException('Đơn thuốc không khớp');
+    }
+
+    // Check if log can be edited (within 24 hours)
+    const now = new Date();
+    const logCreatedAt = new Date(existingLog.createdAt);
+    const hoursSinceCreation =
+      (now.getTime() - logCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceCreation > 24) {
+      throw new BadRequestException(
+        'Chỉ có thể chỉnh sửa xác nhận trong vòng 24 giờ'
+      );
+    }
+
+    // Update log
+    const updatedLog = await this.databaseService.client.adherenceLog.update({
+      where: { id: logId },
+      data: {
+        status: data.status,
+        takenAt: data.takenAt,
+        amount: data.amount,
+        notes: data.notes
+      },
+      include: {
+        prescriptionItem: {
+          include: {
+            medication: {
+              select: {
+                name: true,
+                strength: true,
+                form: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return updatedLog;
+  }
+
+  async deleteAdherenceLog(
+    logId: string,
+    patientId: string,
+    prescriptionId: string
+  ) {
+    // Verify log exists and belongs to patient
+    const existingLog =
+      await this.databaseService.client.adherenceLog.findUnique({
+        where: { id: logId },
+        select: {
+          id: true,
+          patientId: true,
+          prescriptionId: true,
+          createdAt: true
+        }
+      });
+
+    if (!existingLog) {
+      throw new NotFoundException('Xác nhận không tồn tại');
+    }
+
+    if (existingLog.patientId !== patientId) {
+      throw new BadRequestException('Bạn không có quyền xóa xác nhận này');
+    }
+
+    if (existingLog.prescriptionId !== prescriptionId) {
+      throw new BadRequestException('Đơn thuốc không khớp');
+    }
+
+    // Check if log can be deleted (within 24 hours)
+    const now = new Date();
+    const logCreatedAt = new Date(existingLog.createdAt);
+    const hoursSinceCreation =
+      (now.getTime() - logCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceCreation > 24) {
+      throw new BadRequestException(
+        'Chỉ có thể xóa xác nhận trong vòng 24 giờ'
+      );
+    }
+
+    // Delete log
+    await this.databaseService.client.adherenceLog.delete({
+      where: { id: logId }
+    });
+
+    return { message: 'Đã xóa xác nhận thành công' };
   }
 
   // ==================== STATISTICS ====================

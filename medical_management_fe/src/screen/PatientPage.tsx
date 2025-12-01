@@ -17,6 +17,7 @@ import {
   User,
   Activity,
   Download,
+  Edit,
 } from "lucide-react";
 import { TimeValidationDialog } from "@/components/dialogs/TimeValidationDialog";
 import {
@@ -37,6 +38,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Types for better type safety
 interface Prescription {
@@ -64,15 +73,19 @@ interface PrescriptionItem {
 
 interface AdherenceLog {
   id: string;
+  prescriptionId?: string;
   takenAt: string;
   status: "TAKEN" | "MISSED" | "SKIPPED";
+  amount?: string;
   notes?: string;
   prescription?: {
+    id?: string;
     doctor?: {
       fullName: string;
     };
   };
   prescriptionItem?: {
+    id?: string;
     dosage: string;
     route?: string;
     medication?: {
@@ -183,6 +196,17 @@ export default function PatientPage() {
     startDate?: string;
     endDate?: string;
   }>({});
+
+  // Edit adherence log dialog state
+  const [editAdherenceDialog, setEditAdherenceDialog] = useState<{
+    open: boolean;
+    log: AdherenceLog | null;
+    prescriptionId: string | null;
+  }>({
+    open: false,
+    log: null,
+    prescriptionId: null,
+  });
 
   const exportMutation = useMutation({
     mutationFn: async (filters?: typeof exportFilters): Promise<Blob> => {
@@ -1423,6 +1447,31 @@ export default function PatientPage() {
                                     </p>
                                   </div>
                                 )}
+
+                                {/* Edit Button */}
+                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/20">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => {
+                                      const prescriptionId = log.prescriptionId || log.prescription?.id;
+                                      if (prescriptionId) {
+                                        setEditAdherenceDialog({
+                                          open: true,
+                                          log,
+                                          prescriptionId,
+                                        });
+                                      } else {
+                                        toast.error("Không tìm thấy thông tin đơn thuốc");
+                                      }
+                                    }}
+                                  >
+                                    <Edit className="h-3 w-3 mr-1" />
+                                    Sửa
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -2984,6 +3033,132 @@ export default function PatientPage() {
         timeSlot={formatTimeSlot(timeValidationDialog.reminder?.time || "")}
         currentTimeSlot={getCurrentTimeInVietnamese()}
       />
+
+        {/* Edit Adherence Log Dialog */}
+        <Dialog
+          open={editAdherenceDialog.open}
+          onOpenChange={(open) =>
+            setEditAdherenceDialog((prev) => ({ ...prev, open }))
+          }
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-primary" />
+                Chỉnh sửa xác nhận
+              </DialogTitle>
+              <DialogDescription>
+                Chỉnh sửa thông tin xác nhận uống thuốc (chỉ trong vòng 24 giờ)
+              </DialogDescription>
+            </DialogHeader>
+            {editAdherenceDialog.log && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const prescriptionId = editAdherenceDialog.prescriptionId;
+                  if (!prescriptionId) {
+                    toast.error("Không tìm thấy thông tin đơn thuốc");
+                    return;
+                  }
+
+                  try {
+                    await patientApi.updateAdherenceLog(
+                      prescriptionId,
+                      editAdherenceDialog.log!.id,
+                      {
+                        status: formData.get("status") as "TAKEN" | "MISSED" | "SKIPPED",
+                        takenAt: formData.get("takenAt") as string,
+                        amount: formData.get("amount") as string || undefined,
+                        notes: formData.get("notes") as string || undefined,
+                      }
+                    );
+                    toast.success("Cập nhật xác nhận thành công");
+                    setEditAdherenceDialog({ open: false, log: null, prescriptionId: null });
+                    queryClient.invalidateQueries({ queryKey: ["patient-ov-adherence"] });
+                    queryClient.invalidateQueries({ queryKey: ["patient-adherence"] });
+                  } catch (error: any) {
+                    toast.error(error?.response?.data?.message || "Cập nhật xác nhận thất bại");
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Trạng thái *
+                  </label>
+                  <Select
+                    name="status"
+                    defaultValue={editAdherenceDialog.log.status}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TAKEN">Đã uống</SelectItem>
+                      <SelectItem value="MISSED">Bỏ lỡ</SelectItem>
+                      <SelectItem value="SKIPPED">Bỏ qua</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Thời gian uống *
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    name="takenAt"
+                    defaultValue={
+                      new Date(editAdherenceDialog.log.takenAt)
+                        .toISOString()
+                        .slice(0, 16)
+                    }
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Liều lượng (nếu khác)
+                  </label>
+                  <Input
+                    type="text"
+                    name="amount"
+                    placeholder="Ví dụ: 0.5 viên"
+                    defaultValue={editAdherenceDialog.log.amount || ""}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Ghi chú
+                  </label>
+                  <textarea
+                    name="notes"
+                    className="w-full min-h-[80px] px-3 py-2 text-sm border border-border rounded-md bg-background focus:ring-2 focus:ring-primary/20 focus:outline-none resize-none"
+                    placeholder="Ghi chú về việc uống thuốc..."
+                    defaultValue={editAdherenceDialog.log.notes || ""}
+                  />
+                </div>
+
+                <DialogFooter className="gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setEditAdherenceDialog({ open: false, log: null, prescriptionId: null })
+                    }
+                  >
+                    Hủy
+                  </Button>
+                  <Button type="submit">Lưu thay đổi</Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     );
   }

@@ -200,9 +200,10 @@ export class Utils {
           exposedHeaders: ['Set-Cookie', 'Cross-Origin-Resource-Policy']
         });
       } else {
-        Logger.debug('CORS is enabled for specific origins', 'CorsSetup');
+        const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+        Logger.debug(`CORS is enabled for specific origin: ${frontendUrl}`, 'CorsSetup');
         app.enableCors({
-          origin: [],
+          origin: frontendUrl,
           credentials: true,
           methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
           allowedHeaders: [

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -47,6 +48,9 @@ export class PatientController {
       gender?: string;
       birthDate?: string;
       address?: string;
+      email?: string;
+      height?: number;
+      weight?: number;
     }
   ) {
     this.ensurePatient(user);
@@ -205,5 +209,118 @@ export class PatientController {
   async alerts(@UserInfo() user: IUserFromToken) {
     this.ensurePatient(user);
     return this.patientService.listAlerts(user.id);
+  }
+
+  // ========== Medical History Management ==========
+  
+  @Get('medical-history')
+  @SkipTransform()
+  async getMedicalHistory(@UserInfo() user: IUserFromToken) {
+    this.ensurePatient(user);
+    return this.patientService.getMedicalHistory(user.id);
+  }
+
+  // Conditions (Tiền sử bệnh)
+  @Post('medical-history/conditions')
+  @SkipTransform()
+  async addCondition(
+    @UserInfo() user: IUserFromToken,
+    @Body() body: { condition: string }
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.addCondition(user.id, body.condition);
+  }
+
+  @Put('medical-history/conditions')
+  @SkipTransform()
+  async updateConditions(
+    @UserInfo() user: IUserFromToken,
+    @Body() body: { conditions: string[] }
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.updateConditions(user.id, body.conditions);
+  }
+
+  @Delete('medical-history/conditions/:index')
+  @SkipTransform()
+  async deleteCondition(
+    @UserInfo() user: IUserFromToken,
+    @Param('index') index: string
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.deleteCondition(user.id, parseInt(index));
+  }
+
+  // Allergies (Dị ứng)
+  @Post('medical-history/allergies')
+  @SkipTransform()
+  async addAllergy(
+    @UserInfo() user: IUserFromToken,
+    @Body() body: { allergen: string }
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.addAllergy(user.id, body.allergen);
+  }
+
+  @Put('medical-history/allergies')
+  @SkipTransform()
+  async updateAllergies(
+    @UserInfo() user: IUserFromToken,
+    @Body() body: { allergies: string[] }
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.updateAllergies(user.id, body.allergies);
+  }
+
+  @Delete('medical-history/allergies/:index')
+  @SkipTransform()
+  async deleteAllergy(
+    @UserInfo() user: IUserFromToken,
+    @Param('index') index: string
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.deleteAllergy(user.id, parseInt(index));
+  }
+
+  // Surgeries (Phẫu thuật)
+  @Post('medical-history/surgeries')
+  @SkipTransform()
+  async addSurgery(
+    @UserInfo() user: IUserFromToken,
+    @Body() body: { surgery: string }
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.addSurgery(user.id, body.surgery);
+  }
+
+  @Put('medical-history/surgeries')
+  @SkipTransform()
+  async updateSurgeries(
+    @UserInfo() user: IUserFromToken,
+    @Body() body: { surgeries: string[] }
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.updateSurgeries(user.id, body.surgeries);
+  }
+
+  @Delete('medical-history/surgeries/:index')
+  @SkipTransform()
+  async deleteSurgery(
+    @UserInfo() user: IUserFromToken,
+    @Param('index') index: string
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.deleteSurgery(user.id, parseInt(index));
+  }
+
+  // Lifestyle (Lối sống)
+  @Put('medical-history/lifestyle')
+  @SkipTransform()
+  async updateLifestyle(
+    @UserInfo() user: IUserFromToken,
+    @Body() body: { lifestyle: string }
+  ) {
+    this.ensurePatient(user);
+    return this.patientService.updateLifestyle(user.id, body.lifestyle);
   }
 }
