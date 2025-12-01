@@ -220,13 +220,6 @@ const DoctorManagement: React.FC = () => {
     }
   }, [majorDoctorsData, createDoctorForm.majorDoctor]);
 
-  // Function để lấy tên chuyên khoa từ ID
-  const getMajorDoctorNameById = (majorDoctorId: string): string => {
-    if (!majorDoctorId || !majorDoctorsData?.data) return "-";
-    const major = majorDoctorsData.data.find(m => m.id === majorDoctorId);
-    return major?.name || "-";
-  };
-
   // Validators
   const isValidPhone = (phone: string) => /^0[0-9]{9}$/.test(phone.trim());
   // derive validity when needed via validateCreateForm; no separate memo flag required
