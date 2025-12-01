@@ -2655,9 +2655,7 @@ const DoctorManagement: React.FC = () => {
                               </TableCell>
                               <TableCell className="py-4">
                                 <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300/50">
-                                  {doctor.majorDoctor?.id
-                                    ? getMajorDoctorNameById(doctor.majorDoctor.id)
-                                    : "-"}
+                                  {doctor.majorDoctor?.name || "-"}
                                 </span>
                               </TableCell>
                               <TableCell className="py-4">

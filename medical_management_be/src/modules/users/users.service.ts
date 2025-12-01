@@ -264,6 +264,10 @@ export class UsersService {
     const [items, total] = await Promise.all([
       this.databaseService.client.user.findMany({
         where,
+        include: {
+          profile: true,
+          majorDoctor: true
+        },
         orderBy: { [orderByField]: orderDir },
         skip: (page - 1) * limit,
         take: limit

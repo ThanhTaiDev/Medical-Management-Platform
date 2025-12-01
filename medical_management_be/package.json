@@ -56,10 +56,11 @@
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.53.0",
-    "chalk": "^5.4.1",
+    "chalk": "4.1.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dayjs": "^1.11.13",
+    "exceljs": "^4.4.0",
     "helmet": "^8.1.0",
     "nestjs-prisma": "^0.25.0",
     "nestjs-zod": "^4.3.1",
@@ -77,8 +78,7 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1",
     "yarn": "^1.22.22",
-    "zod": "^3.25.13",
-    "exceljs": "^4.4.0"
+    "zod": "^3.25.13"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
