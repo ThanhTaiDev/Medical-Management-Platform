@@ -21,6 +21,12 @@ import * as ExcelJS from 'exceljs';
  * Quản lý bệnh nhân, đơn thuốc và thông tin bác sĩ
  */
 @Injectable()
+/**
+ * Service quản lý bác sĩ
+ * Xử lý các logic liên quan đến doctor, prescriptions, patient management
+ * 
+ * @class DoctorService
+ */
 export class DoctorService {
   constructor(private readonly databaseService: DatabaseService) { }
 
