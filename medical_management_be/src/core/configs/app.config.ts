@@ -13,6 +13,12 @@ const envSchema = z.object({
   FRONTEND_URL: z.string()
 });
 
+/**
+ * Cấu hình ứng dụng chính
+ * Load và validate environment variables
+ * 
+ * @returns {IAppConfig} Application configuration object
+ */
 export default registerAs<IAppConfig>('globalAppConfig', () => {
   const env = validateConfig(process.env, envSchema);
 
