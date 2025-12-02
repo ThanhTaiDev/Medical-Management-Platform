@@ -8,6 +8,12 @@ import { SendReminderDto, QuickConfirmDto, MedicationScheduleQueryDto, Adherence
  * Xử lý gửi thông báo, cập nhật trạng thái tuân thủ
  */
 @Injectable()
+/**
+ * Service quản lý thông báo và nhắc nhở
+ * Xử lý medication reminders, alerts, và notifications
+ * 
+ * @class NotificationsService
+ */
 export class NotificationsService {
   constructor(private readonly databaseService: DatabaseService) {}
 
