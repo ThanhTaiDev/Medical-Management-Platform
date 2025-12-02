@@ -40,14 +40,18 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     this.client = extendedPrismaClient;
   }
 
+  /**
+   * Khởi tạo kết nối database khi module được load
+   * Tự động retry nếu kết nối thất bại
+   */
   async onModuleInit(): Promise<void> {
     const maxRetries = 5;
 
     for (let retries = 0; retries <= maxRetries; retries++) {
       try {
-        this.logger.log('Connecting to the database...');
+        this.logger.log('🔌 Connecting to the database...');
         await this.client.$connect();
-        this.logger.log('Connected to the database successfully ✨');
+        this.logger.log('✅ Connected to the database successfully ✨');
         break;
       } catch (error) {
         this.logger.error(
