@@ -59,6 +59,12 @@ export interface AdherenceLogDto {
 }
 
 @Injectable()
+/**
+ * Service quản lý đơn thuốc
+ * Xử lý các logic liên quan đến prescriptions, prescription items, adherence logs
+ * 
+ * @class PrescriptionsService
+ */
 export class PrescriptionsService {
   constructor(
     private readonly databaseService: DatabaseService,
