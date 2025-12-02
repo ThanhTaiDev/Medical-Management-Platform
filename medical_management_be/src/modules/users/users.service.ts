@@ -21,6 +21,12 @@ import { ConfigService } from '@nestjs/config';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
+/**
+ * Service quản lý người dùng
+ * Xử lý các logic liên quan đến user, patient profile, medical history
+ * 
+ * @class UsersService
+ */
 export class UsersService {
   constructor(
     private readonly databaseService: DatabaseService,
