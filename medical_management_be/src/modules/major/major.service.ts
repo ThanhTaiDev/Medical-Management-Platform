@@ -3,6 +3,12 @@ import { DatabaseService } from '../../core/database/database.service';
 import { CreateMajorDoctorDto, UpdateMajorDoctorDto, QueryMajorDoctorDto } from './dto';
 
 @Injectable()
+/**
+ * Service quản lý chuyên khoa bác sĩ
+ * Xử lý CRUD operations cho major doctors
+ * 
+ * @class MajorService
+ */
 export class MajorService {
   constructor(private readonly databaseService: DatabaseService) {}
 
