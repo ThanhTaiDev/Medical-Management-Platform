@@ -10,6 +10,14 @@ import { UserAgent } from '@/common/decorators/userAgent';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Đăng nhập người dùng
+   * @param user - Thông tin user từ LocalAuthGuard
+   * @param res - Fastify response object
+   * @param userAgent - User agent string
+   * @param ip - IP address của client
+   * @returns Access token và user info
+   */
   @Post('/login')
   @UseGuards(LocalAuthGuard)
   @Public()
