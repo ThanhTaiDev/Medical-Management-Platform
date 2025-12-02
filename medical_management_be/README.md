@@ -59,10 +59,12 @@ src/
 ## Tính năng
 
 - **NestJS Framework**: Framework TypeScript cho phát triển backend
-- **Bun Runtime**: JavaScript runtime hiệu suất cao
+- **Node.js Runtime**: JavaScript runtime ổn định và hiệu suất cao
 - **Hot Reloading**: Phát triển nhanh với hot reload
 - **TypeScript**: Đầy đủ hỗ trợ TypeScript
 - **Testing**: Hỗ trợ unit tests và e2e tests
+- **Prisma ORM**: Database ORM hiện đại với type safety
+- **JWT Authentication**: Xác thực người dùng an toàn
 
 ## Tài liệu tham khảo
 
