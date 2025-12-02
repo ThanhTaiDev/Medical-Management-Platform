@@ -9,6 +9,10 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  /**
+   * Endpoint chào mừng
+   * @returns {string} Thông điệp chào mừng
+   */
   @Get()
   getHello(): string {
     return this.appService.getHello();
