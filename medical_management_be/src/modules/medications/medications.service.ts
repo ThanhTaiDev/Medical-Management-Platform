@@ -2,6 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '@/core/database/database.service';
 
 @Injectable()
+/**
+ * Service quản lý thuốc
+ * Xử lý CRUD operations cho medications
+ * 
+ * @class MedicationsService
+ */
 export class MedicationsService {
   constructor(private readonly databaseService: DatabaseService) {}
 
