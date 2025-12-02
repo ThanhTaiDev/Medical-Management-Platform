@@ -19,6 +19,12 @@ const modules = [
 ];
 
 @Global()
+/**
+ * Feature module chứa tất cả các business modules
+ * Import và export các modules: users, doctor, patient, prescriptions, etc.
+ * 
+ * @class FeatureModuleModule
+ */
 @Module({
   imports: [...modules],
   exports: [...modules]
