@@ -24,6 +24,12 @@ interface JwtPayload {
   roles: UserRole;
 }
 
+/**
+ * Service xử lý authentication và authorization
+ * Quản lý login, register, JWT tokens
+ * 
+ * @class AuthService
+ */
 @Injectable()
 export class AuthService {
   constructor(
