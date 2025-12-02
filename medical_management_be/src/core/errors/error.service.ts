@@ -9,6 +9,12 @@ import {
 } from '@/common/types/exception.types';
 
 @Injectable()
+/**
+ * Service xử lý errors và exceptions
+ * Cung cấp các phương thức format và log errors
+ * 
+ * @class ErrorService
+ */
 export class ErrorService {
   constructor(private readonly configService: ConfigService) {}
 
