@@ -4,6 +4,12 @@ import { AdherenceStatus, UserStatus, PrescriptionStatus } from '@prisma/client'
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
+/**
+ * Service tạo báo cáo
+ * Xử lý các loại báo cáo thống kê và xuất Excel
+ * 
+ * @class ReportsService
+ */
 export class ReportsService {
   constructor(private readonly databaseService: DatabaseService) {}
 
