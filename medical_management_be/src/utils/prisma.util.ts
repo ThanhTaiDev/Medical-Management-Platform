@@ -27,6 +27,12 @@ const loggingExtension = Prisma.defineExtension((client) => {
   });
 });
 
+/**
+ * Extended Prisma Client với các extensions
+ * Bao gồm soft delete và nested operations
+ * 
+ * @constant extendedPrismaClient
+ */
 export const extendedPrismaClient = prismaClient
   .$extends(loggingExtension)
   .$extends({
