@@ -11,6 +11,12 @@ import { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
+/**
+ * Utility class chứa các helper functions
+ * Bao gồm SystemUtils, CommonUtils, và các utilities khác
+ * 
+ * @class Utils
+ */
 export class Utils {
   /**
    * Các utility functions chung cho toàn bộ ứng dụng
