@@ -6,6 +6,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
+/**
+ * Guard để bảo vệ routes cần authentication
+ * Kiểm tra JWT token và validate user permissions
+ * 
+ * @class JwtAuthGuard
+ */
 export class JwtAuthGuard extends AuthGuard('jwt') {
   private readonly logger = new Logger(JwtAuthGuard.name);
 
