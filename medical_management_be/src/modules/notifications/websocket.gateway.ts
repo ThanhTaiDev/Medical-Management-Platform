@@ -16,6 +16,12 @@ interface AuthenticatedSocket extends Socket {
   user?: IUserFromToken;
 }
 
+/**
+ * WebSocket Gateway cho real-time notifications
+ * Xử lý kết nối WebSocket và gửi notifications
+ * 
+ * @class MedicalManagementGateway
+ */
 @Injectable()
 @WebSocketGateway({
   cors: {
