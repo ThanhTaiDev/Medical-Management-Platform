@@ -10,6 +10,12 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { APP_PIPE } from '@nestjs/core';
 // Removed Redis queues, BullMQ, Bull Board, and Email service in simplified setup
 
+/**
+ * Core module chứa các services và modules cốt lõi
+ * Được import global để tất cả modules có thể sử dụng
+ * 
+ * @class CoreModule
+ */
 @Global()
 @Module({
   imports: [
