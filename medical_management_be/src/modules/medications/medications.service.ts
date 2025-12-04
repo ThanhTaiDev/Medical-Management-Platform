@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { DatabaseService } from '@/core/database/database.service';
 
 @Injectable()
@@ -51,6 +51,69 @@ export class MedicationsService {
     return { items, total, page, limit };
   }
 
+  /**
+   * Kiểm tra xem thuốc có trùng lặp 100% với thuốc khác không
+   * So sánh tất cả các field: name, strength, form, unit, description
+   */
+  private async checkDuplicateMedication(
+    data: {
+      name: string;
+      strength?: string;
+      form?: string;
+      unit?: string;
+      description?: string;
+    },
+    excludeId?: string
+  ): Promise<void> {
+    // Normalize dữ liệu để so sánh (trim, lowercase)
+    const normalize = (value?: string | null): string => {
+      return value ? value.trim().toLowerCase() : '';
+    };
+
+    const normalizedData = {
+      name: normalize(data.name),
+      strength: normalize(data.strength),
+      form: normalize(data.form),
+      unit: normalize(data.unit),
+      description: normalize(data.description)
+    };
+
+    // Tìm tất cả thuốc có cùng name (case-insensitive)
+    const existingMedications = await this.databaseService.client.medication.findMany({
+      where: {
+        name: {
+          equals: data.name,
+          mode: 'insensitive'
+        },
+        ...(excludeId ? { id: { not: excludeId } } : {})
+      }
+    });
+
+    // Kiểm tra từng thuốc xem có trùng 100% không
+    for (const existing of existingMedications) {
+      const normalizedExisting = {
+        name: normalize(existing.name),
+        strength: normalize(existing.strength),
+        form: normalize(existing.form),
+        unit: normalize(existing.unit),
+        description: normalize(existing.description)
+      };
+
+      // So sánh tất cả các field
+      if (
+        normalizedData.name === normalizedExisting.name &&
+        normalizedData.strength === normalizedExisting.strength &&
+        normalizedData.form === normalizedExisting.form &&
+        normalizedData.unit === normalizedExisting.unit &&
+        normalizedData.description === normalizedExisting.description
+      ) {
+        throw new ConflictException(
+          'Thuốc đã tồn tại trong hệ thống. Vui lòng kiểm tra lại thông tin thuốc.'
+        );
+      }
+    }
+  }
+
   async create(data: {
     name: string;
     strength?: string;
@@ -58,6 +121,9 @@ export class MedicationsService {
     unit?: string;
     description?: string;
   }) {
+    // Kiểm tra trùng lặp trước khi tạo
+    await this.checkDuplicateMedication(data);
+
     return this.databaseService.client.medication.create({
       data
     });
@@ -78,6 +144,29 @@ export class MedicationsService {
       where: { id }
     });
     if (!med) throw new NotFoundException('Medication not found');
+
+    // Nếu có thay đổi các field có thể gây trùng lặp, kiểm tra lại
+    const hasRelevantChanges =
+      data.name !== undefined ||
+      data.strength !== undefined ||
+      data.form !== undefined ||
+      data.unit !== undefined ||
+      data.description !== undefined;
+
+    if (hasRelevantChanges) {
+      // Tạo object với dữ liệu mới (merge với dữ liệu cũ)
+      const mergedData = {
+        name: data.name ?? med.name,
+        strength: data.strength ?? med.strength ?? undefined,
+        form: data.form ?? med.form ?? undefined,
+        unit: data.unit ?? med.unit ?? undefined,
+        description: data.description ?? med.description ?? undefined
+      };
+
+      // Kiểm tra trùng lặp (loại trừ chính nó)
+      await this.checkDuplicateMedication(mergedData, id);
+    }
+
     return this.databaseService.client.medication.update({
       where: { id },
       data
