@@ -66,10 +66,14 @@ export class MedicationsService {
     excludeId?: string
   ): Promise<void> {
     // Normalize dữ liệu để so sánh (trim, lowercase)
+    // Xử lý null, undefined, empty string đều thành empty string
     const normalize = (value?: string | null): string => {
-      return value ? value.trim().toLowerCase() : '';
+      if (!value) return '';
+      const trimmed = String(value).trim();
+      return trimmed ? trimmed.toLowerCase() : '';
     };
 
+    // Normalize input data - đảm bảo trim trước khi normalize
     const normalizedData = {
       name: normalize(data.name),
       strength: normalize(data.strength),
@@ -79,10 +83,11 @@ export class MedicationsService {
     };
 
     // Tìm tất cả thuốc có cùng name (case-insensitive)
+    // Không filter theo các field khác vì cần so sánh tất cả các field
     const existingMedications = await this.databaseService.client.medication.findMany({
       where: {
         name: {
-          equals: data.name,
+          equals: data.name.trim(),
           mode: 'insensitive'
         },
         ...(excludeId ? { id: { not: excludeId } } : {})
@@ -99,14 +104,15 @@ export class MedicationsService {
         description: normalize(existing.description)
       };
 
-      // So sánh tất cả các field
-      if (
+      // So sánh tất cả các field - phải giống nhau 100%
+      const isExactMatch = 
         normalizedData.name === normalizedExisting.name &&
         normalizedData.strength === normalizedExisting.strength &&
         normalizedData.form === normalizedExisting.form &&
         normalizedData.unit === normalizedExisting.unit &&
-        normalizedData.description === normalizedExisting.description
-      ) {
+        normalizedData.description === normalizedExisting.description;
+
+      if (isExactMatch) {
         throw new ConflictException(
           'Thuốc đã tồn tại trong hệ thống. Vui lòng kiểm tra lại thông tin thuốc.'
         );
@@ -124,8 +130,15 @@ export class MedicationsService {
     // Kiểm tra trùng lặp trước khi tạo
     await this.checkDuplicateMedication(data);
 
+    // Tạo thuốc mới
     return this.databaseService.client.medication.create({
-      data
+      data: {
+        name: data.name.trim(),
+        strength: data.strength?.trim() || null,
+        form: data.form?.trim() || null,
+        unit: data.unit?.trim() || null,
+        description: data.description?.trim() || null
+      }
     });
   }
 
